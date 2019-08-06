@@ -6,18 +6,22 @@
 \title{Mineral data}
 \format{An object of class \code{"data.frame"}.}
 \source{
-Source goes here.
+Smith, R.E., Campbell, N.A. and Lichfield, A. (1984), Multivariate
+statistical techniques applied to pisolitic laterite geochemistry at Golden Grove,
+Western Australia, Journal of Geochemical Exploration, 22, 193-216.
 }
 \usage{
 data(mineral)
 }
 \description{
-Mineral data. More details here.
+Contents (in parts per million) of 22 chemical elements in
+53 samples of rocks in Western Australia.
+Two columns (8 and 9) were selected for use in this book.
+}
+\details{
+Format: Numeric with 53 rows and 2 columns:
 }
 \examples{
 data(mineral)
-}
-\references{
-References go here.
 }
 \keyword{datasets}

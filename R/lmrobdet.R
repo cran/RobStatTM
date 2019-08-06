@@ -4,11 +4,11 @@
 #' using deterministic starting points.
 #'
 #' This function computes MM-regression estimators
-#' computed using Pen~a-Yohai candidates (instead of subsampling ones). 
+#' computed using Pen~a-Yohai candidates (instead of subsampling ones).
 #' This function makes use of the functions \code{lmrob.fit},
-#' \code{lmrob..M..fit}, \code{.vcov.avar1}, \code{lmrob.S} and  
+#' \code{lmrob..M..fit}, \code{.vcov.avar1}, \code{lmrob.S} and
 #' \code{lmrob.lar}, from robustbase,
-#' along with utility functions used by these functions, 
+#' along with utility functions used by these functions,
 #' modified so as to include use of the analytic form of the
 #' optimal psi and rho functions (for the optimal psi function , see
 #' Section 5.8.1 of Maronna, Martin, Yohai and Salibian Barrera, 2019)
@@ -67,9 +67,9 @@
 #' @useDynLib RobStatTM, .registration = TRUE
 #' @export
 lmrobdetMM <- function(formula, data, subset, weights, na.action,
-                   model = TRUE, x = !control$compute.rd, y = FALSE,
-                   singular.ok = TRUE, contrasts = NULL, offset = NULL,
-                   control = lmrobdet.control())
+                       model = TRUE, x = !control$compute.rd, y = FALSE,
+                       singular.ok = TRUE, contrasts = NULL, offset = NULL,
+                       control = lmrobdet.control())
 {
   ret.x <- x
   ret.y <- y
@@ -189,7 +189,8 @@ lmrobdetMM <- function(formula, data, subset, weights, na.action,
       z$scale.S <- z$scale
       z$scale <- mscale(u=z$resid, tol = control$mscale_tol, delta=control$bb*(1-p/length(z$resid)), tuning.chi=control$tuning.chi, family=control$family, max.it = control$mscale_maxit)
       # compute robust R^2
-      r.squared <- adj.r.squared <- 0
+      r.squared <- adj.r.squared <- NA
+      if(z$scale > .Machine$double.eps) {
       # if(control$family == 'bisquare') {
       s2 <- mean(rho(z$resid/z$scale, family = control$family, cc=control$tuning.psi))
       if( p != attr(mt, "intercept") ) {
@@ -198,14 +199,15 @@ lmrobdetMM <- function(formula, data, subset, weights, na.action,
         else 0L
         if(df.int == 1L) {
           tmp <- as.vector(refine.sm(x=matrix(rep(1,n), n, 1), y=y, initial.beta=median(y),
-                           initial.scale=z$scale, k=500,
-                           conv=1, family = control$family, cc = control$tuning.psi, step='M')$beta.rw)
+                                     initial.scale=z$scale, k=500,
+                                     conv=1, family = control$family, cc = control$tuning.psi, step='M')$beta.rw)
           s02 <- mean(rho((y-tmp)/z$scale, family = control$family, cc=control$tuning.psi))
         } else {
           s02 <- mean(rho(y/z$scale, family = control$family, cc=control$tuning.psi))
         }
         r.squared <- INVTR2( (s02 - s2)/(s02*(1-s2)), control$family, control$tuning.psi)
         adj.r.squared <- ((n-1)/(n-p))*r.squared -(p-1)/(n-p) # ( s02/(n-1) - s2/(n-z$rank) ) / (s02/(n-1)) # n-p? p.193
+      }
       }
       # }
       z$r.squared <- r.squared
@@ -231,13 +233,13 @@ lmrobdetMM <- function(formula, data, subset, weights, na.action,
           model.matrix(mt, mf, contrasts) else x
       if (ret.y)
         z$y <- if (!is.null(w)) model.response(mf, "numeric") else y
-#
-#       z$coefficients <- z2$coefficients
-#       z$scale <- z2$scale
-#       z$residuals <- z2$residuals
-#       z$cov <- z2$cov
-#       z$fitted.values <- y - z2$residuals
-#       z$rweights <- z$loss <- NULL
+      #
+      #       z$coefficients <- z2$coefficients
+      #       z$scale <- z2$scale
+      #       z$residuals <- z2$residuals
+      #       z$cov <- z2$cov
+      #       z$fitted.values <- y - z2$residuals
+      #       z$rweights <- z$loss <- NULL
 
       # z <- lmrob.fit(x, y, control, init=init, mf = mf) #-> ./lmrob.MM.R
       if (singular.fit) {
@@ -412,8 +414,8 @@ lmrobdet.control <- function(bb = 0.5,
 {
   family <- match.arg(family, choices = FAMILY.NAMES)
   if( (efficiency > .9999 ) & ( (family=='modopt') | (family=='optimal') ) ) {
-      efficiency <- .9999
-      warning("Current implementation of \'optimal\' or \'modopt\' only allows efficiencies up to 99.99%. Efficiency set to 99.99% for this call.")
+    efficiency <- .9999
+    warning("Current implementation of \'optimal\' or \'modopt\' only allows efficiencies up to 99.99%. Efficiency set to 99.99% for this call.")
   }
   if(missing(tuning.psi))
     tuning.psi <- do.call(family, args=list(e=efficiency))
@@ -452,10 +454,10 @@ print.lmrobdetMM <- function(x, digits = max(3, getOption("digits") - 3), ...)
       } else {
         cat("Algorithm did not converge\n\n")
         # if (control$method == "S")
-          # cat("Coefficients of the *initial* S-estimator:\n")
+        # cat("Coefficients of the *initial* S-estimator:\n")
         # else
-          cat(sprintf("Coefficients of the %s-estimator:\n",
-                      control$method))
+        cat(sprintf("Coefficients of the %s-estimator:\n",
+                    control$method))
       }
     }
     print(format(cf, digits = digits), print.gap = 2, quote = FALSE)
@@ -487,10 +489,10 @@ summary.lmrobdetMM <- function(object, correlation = FALSE, symbolic.cor = FALSE
     ## where  p <- z$rank ; rdf <- z$df.residual ; Qr <- qr.lm(object)
     ans$df <- c(p, df, NCOL(object$qr$qr))
     ans$coefficients <- cbind(est, se, tval, 2 * pt(abs(tval), df, lower.tail = FALSE))
-     #   if( ans$converged)
-     #    cbind(est, se, tval, 2 * pt(abs(tval), df, lower.tail = FALSE))
-     # else
-     #   cbind(est, if(sigma <= 0) 0 else NA, NA, NA)
+    #   if( ans$converged)
+    #    cbind(est, se, tval, 2 * pt(abs(tval), df, lower.tail = FALSE))
+    # else
+    #   cbind(est, if(sigma <= 0) 0 else NA, NA, NA)
     dimnames(ans$coefficients) <- list(names(est), cf.nms)
     ans$cov <- object$cov
     if(length(object$cov) > 1L)
@@ -515,8 +517,8 @@ summary.lmrobdetMM <- function(object, correlation = FALSE, symbolic.cor = FALSE
 
 #' @export
 print.summary.lmrobdetMM <- function (x, digits = max(3, getOption("digits") - 3),
-                                  symbolic.cor = x$symbolic.cor,
-                                  signif.stars = getOption("show.signif.stars"), ...)
+                                      symbolic.cor = x$symbolic.cor,
+                                      signif.stars = getOption("show.signif.stars"), ...)
 {
   cat("\nCall:\n",
       paste(deparse(x$call, width.cutoff=72), sep = "\n", collapse = "\n"),
@@ -570,7 +572,7 @@ print.summary.lmrobdetMM <- function (x, digits = max(3, getOption("digits") - 3
                    na.print="NA", ...)
       cat("\nRobust residual standard error:",
           format(signif(x$scale, digits)),"\n")
-      if (!is.null(x$r.squared) && x$df[1] != attr(x$terms, "intercept")) {
+      if (!is.null(x$r.squared) && !is.na(x$r.squared) && x$df[1] != attr(x$terms, "intercept")) {
         cat("Multiple R-squared: ", formatC(x$r.squared, digits = digits))
         cat(",\tAdjusted R-squared: ", formatC(x$adj.r.squared, digits = digits),
             "\n")
@@ -647,10 +649,10 @@ print.summary.lmrobdetMM <- function (x, digits = max(3, getOption("digits") - 3
 #' @export
 refine.sm <- function(x, y, initial.beta, initial.scale, k=50,
                       conv=1, b, cc, family, step='M') {
-
-#refine.sm <- function(x, y, initial.beta, initial.scale, k=50,
-#                     conv=1, b, cc, step='M') {
-
+  
+  #refine.sm <- function(x, y, initial.beta, initial.scale, k=50,
+  #                     conv=1, b, cc, step='M') {
+  
   ## Weight function   # weight function = psi(u)/u
   #f.w <- function(u, cc) {
   #  tmp <- (1 - (u/cc)^2)^2
@@ -659,63 +661,65 @@ refine.sm <- function(x, y, initial.beta, initial.scale, k=50,
   #}
   f.w <- function(u, family, cc)
     Mwgt(x = u, cc = cc, psi = family)
-
-
+  
+  
   n <- dim(x)[1]
   # p <- dim(x)[2]
-
+  
   res <- as.vector( y - x %*% initial.beta )
-
+  
   if( missing( initial.scale ) ) {
     initial.scale <- scale <- median(abs(res))/.6745
   } else {
     scale <- initial.scale
   }
-
+  
   beta <- initial.beta
-
-
+  
+  
   converged <- FALSE
-
+  
   # lower.bound <- median(abs(res))/cc
-
-
-  for(i in 1:k) {
-    # do one step of the iterations to solve for the scale
-    scale.super.old <- scale
-    #lower.bound <- median(abs(res))/1.56
-    if(step=='S') {
-      scale <- sqrt( scale^2 * mean( rho( res / scale, family = family, cc = cc ) ) / b     )
-      # scale <- mscale(res, tol=1e-7, delta=b, max.it=500, tuning.chi=cc)
-    }
-    # now do one step of IRWLS with the "improved scale"
-    weights <- f.w( res/scale, family = family, cc = cc )
-    # W <- matrix(weights, n, p)
-    xw <- x * sqrt(weights) # sqrt(W)
-    yw <- y *   sqrt(weights)
-    beta.1 <- our.solve( t(xw) %*% xw ,t(xw) %*% yw )
-    if(any(is.na(beta.1))) {
-      beta.1 <- initial.beta
-      scale <- initial.scale
-      break
-    }
-    if( (conv==1) ) {
-      # check for convergence
-      if( norm.sm( beta - beta.1 ) / norm.sm(beta) < 1e-7 ) { # magic number alert!!!
-        converged <- TRUE
+  
+  if( scale == 0) {
+    beta.1 <- initial.beta
+    scale <- initial.scale
+  } else {
+    for(i in 1:k) {
+      # do one step of the iterations to solve for the scale
+      scale.super.old <- scale
+      #lower.bound <- median(abs(res))/1.56
+      if(step=='S') {
+        scale <- sqrt( scale^2 * mean( rho( res / scale, family = family, cc = cc ) ) / b     )
+        # scale <- mscale(res, tol=1e-7, delta=b, max.it=500, tuning.chi=cc)
+      }
+      # now do one step of IRWLS with the "improved scale"
+      weights <- f.w( res/scale, family = family, cc = cc )
+      # W <- matrix(weights, n, p)
+      xw <- x * sqrt(weights) # sqrt(W)
+      yw <- y *   sqrt(weights)
+      beta.1 <- our.solve( t(xw) %*% xw ,t(xw) %*% yw )
+      if(any(is.na(beta.1))) {
+        beta.1 <- initial.beta
+        scale <- initial.scale
         break
       }
+      if( (conv==1) ) {
+        # check for convergence
+        if( norm.sm( beta - beta.1 ) / norm.sm(beta) < 1e-7 ) { # magic number alert!!!
+          converged <- TRUE
+          break
+        }
+      }
+      res <- as.vector( y - x %*% beta.1 )
+      beta <- beta.1
+      # print(as.vector(t(x) %*% rhoprime(res/scale, cc))/n)
+      # print(scale)
     }
-    res <- as.vector( y - x %*% beta.1 )
-    beta <- beta.1
-    # print(as.vector(t(x) %*% rhoprime(res/scale, cc))/n)
-    # print(scale)
   }
-
   # res <- as.vector( y - x %*% beta )
   # get the residuals from the last beta
   return(list(beta.rw = beta.1, scale.rw = scale, converged=converged))
-
 }
 
 norm.sm <- function(x) sqrt(sum(x^2))
@@ -739,11 +743,11 @@ our.solve <- function(a,b) {
 #'
 #' This function computes Distance Constrained Maximum Likelihood regression estimators
 #' computed using an MM-regression estimator based on Pen~a-Yohai
-#' candidates (instead of subsampling ones). 
+#' candidates (instead of subsampling ones).
 #' This function makes use of the functions \code{lmrob.fit},
-#' \code{lmrob..M..fit}, \code{.vcov.avar1}, \code{lmrob.S} and  
+#' \code{lmrob..M..fit}, \code{.vcov.avar1}, \code{lmrob.S} and
 #' \code{lmrob.lar}, from robustbase,
-#' along with utility functions used by these functions, 
+#' along with utility functions used by these functions,
 #' modified so as to include use of the analytic form of the
 #' optimal psi and rho functions (for the optimal psi function , see
 #' Section 5.8.1 of Maronna, Martin, Yohai and Salibian Barrera, 2019)
@@ -800,9 +804,9 @@ our.solve <- function(a,b) {
 #'
 #' @export
 lmrobdetDCML <- function(formula, data, subset, weights, na.action,
-                     model = TRUE, x = !control$compute.rd, y = FALSE,
-                     singular.ok = TRUE, contrasts = NULL, offset = NULL,
-                     control = lmrobdet.control())
+                         model = TRUE, x = !control$compute.rd, y = FALSE,
+                         singular.ok = TRUE, contrasts = NULL, offset = NULL,
+                         control = lmrobdet.control())
 {
   ret.x <- x
   ret.y <- y
@@ -920,7 +924,9 @@ lmrobdetDCML <- function(formula, data, subset, weights, na.action,
                     df.residual=z$df.residual, iter=z$iter, rweights = z$rweights)
       # DCML
       # LS is already computed in z0
-      z <- DCML(x=x, y=y, z=z, z0=z0, control=control)
+      # if MMPY or SMPY return an exact fit then do not run DCML
+      if(z$scale > .Machine$double.eps) 
+        z <- DCML(x=x, y=y, z=z, z0=z0, control=control)
       z$rank <- z.tmp$rank
       z$converged <- z.tmp$converged
       z$qr <- z.tmp$qr
@@ -1047,9 +1053,9 @@ lmrobdetDCML <- function(formula, data, subset, weights, na.action,
 #' re-descending M estimator. The scale is set to a quantile of the
 #' absolute residuals from the L1 estimator.
 #' This function makes use of the functions \code{lmrob.fit},
-#' \code{lmrob..M..fit}, \code{.vcov.avar1}, \code{lmrob.S} and  
+#' \code{lmrob..M..fit}, \code{.vcov.avar1}, \code{lmrob.S} and
 #' \code{lmrob.lar}, from robustbase,
-#' along with utility functions used by these functions, 
+#' along with utility functions used by these functions,
 #' modified so as to include use of the analytic form of the
 #' optimal psi and rho functions (for the optimal psi function , see
 #' Section 5.8.1 of Maronna, Martin, Yohai and Salibian Barrera, 2019)
@@ -1221,27 +1227,29 @@ lmrobM <- function(formula, data, subset, weights, na.action,
     z$control <- control
     z$control$method <- oldz.control$method
     z$scale <- mscale(u=z$resid, tol = control$mscale_tol, delta=control$bb*(1-p/length(z$resid)), tuning.chi=control$tuning.chi, family=control$family, max.it = control$mscale_maxit)
-    r.squared <- adj.r.squared <- 0
-    # if(control$family == 'bisquare') {
-    s2 <- mean(rho(z$resid/z$scale, family = control$family, cc=control$tuning.psi))
-    if( p != attr(mt, "intercept") ) {
-      df.int <- if (attr(mt, "intercept"))
-        1L
-      else 0L
-      if(df.int == 1L) {
-        tmp <- as.vector(refine.sm(x=matrix(rep(1,n), n, 1), y=y, initial.beta=median(y),
-                                   initial.scale=z$scale, k=500,
-                                   conv=1, family = control$family, cc = control$tuning.psi, step='M')$beta.rw)
-        s02 <- mean(rho((y-tmp)/z$scale, family = control$family, cc=control$tuning.psi))
-      } else {
-        s02 <- mean(rho(y/z$scale, family = control$family, cc=control$tuning.psi))
+    r.squared <- adj.r.squared <- NA
+    if(z$scale > .Machine$double.eps) {
+      # if(control$family == 'bisquare') {
+      s2 <- mean(rho(z$resid/z$scale, family = control$family, cc=control$tuning.psi))
+      if( p != attr(mt, "intercept") ) {
+        df.int <- if (attr(mt, "intercept"))
+          1L
+        else 0L
+        if(df.int == 1L) {
+          tmp <- as.vector(refine.sm(x=matrix(rep(1,n), n, 1), y=y, initial.beta=median(y),
+                                     initial.scale=z$scale, k=500,
+                                     conv=1, family = control$family, cc = control$tuning.psi, step='M')$beta.rw)
+          s02 <- mean(rho((y-tmp)/z$scale, family = control$family, cc=control$tuning.psi))
+        } else {
+          s02 <- mean(rho(y/z$scale, family = control$family, cc=control$tuning.psi))
+        }
+        r.squared <- INVTR2( (s02 - s2)/(s02*(1-s2)), control$family, control$tuning.psi)
+        adj.r.squared <- ((n-1)/(n-p))*r.squared -(p-1)/(n-p) # ( s02/(n-1) - s2/(n-z$rank) ) / (s02/(n-1)) # n-p? p.193
       }
-      r.squared <- INVTR2( (s02 - s2)/(s02*(1-s2)), control$family, control$tuning.psi)
-      adj.r.squared <- ((n-1)/(n-p))*r.squared -(p-1)/(n-p) # ( s02/(n-1) - s2/(n-z$rank) ) / (s02/(n-1)) # n-p? p.193
+      # }
     }
-    # }
-    z$r.squared <- r.squared
-    z$adj.r.squared <- adj.r.squared
+      z$r.squared <- r.squared
+      z$adj.r.squared <- adj.r.squared
   } else { ## rank 0
     z <- list(coefficients = if (is.matrix(y)) matrix(NA,p,ncol(y))
               else rep.int(as.numeric(NA), p),
