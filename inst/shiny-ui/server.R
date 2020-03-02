@@ -9,8 +9,7 @@
 
 options(warn = -1L, scipen = -1L)
 
-pkgs <- c("DT", "fit.models", "ggplot2", "grid", "gridExtra", "gtools",
-          "PerformanceAnalytics", "robust", "robustbase", "shiny", "xts")
+pkgs <- c("DT", "fit.models", "ggplot2", "grid", "gridExtra", "gtools",  "shiny", "xts")
 
 missing.packages <- pkgs[sapply(pkgs, function(p) { length(find.package(p, quiet = T)) == 0 })]
 if (length(missing.packages) > 0) {
@@ -944,7 +943,7 @@ shinyServer(function(input, output) {
                                quote  = input$quote,
                                numerals = "allow.loss")
                     },
-                    error = function(cond) {
+                      error = function(cond) {
                       message("There appears to be an error. Try checking the format of the CSV file.")
                       message("Here's the original error message:")
                       message(cond)
@@ -1011,6 +1010,18 @@ shinyServer(function(input, output) {
 ## Location/Scale ##
 ####################
   
+  output$locScale.dataset <- renderUI({
+    if (is.null(dim(values$dat))) {
+      disabled(textInput("locScale.dataset", "Dataset", "NA"))
+    } else {
+      fluidRow(
+        disabled(textInput("locScale.dataset", "Dataset", input$dataset)),
+        
+        actionButton("locScale.changeData", "Choose Data")
+      )
+    }
+  })
+  
     # Render variable input list
   output$locScale.select.variable <- renderUI({
     # If there is no data, do nothing
@@ -1024,10 +1035,10 @@ shinyServer(function(input, output) {
   })
   
   output$locScale.eff.options <- renderUI({
-    if (any(input$locScale.psi == c("modopt", "optimal"))) {
+    if (any(input$locScale.psi == c("mopt", "opt"))) {
       radioButtons("locScale.eff", "Asymptotic Efficiency",
                             choices  = c("0.85" = 0.85, "0.9" = 0.9, "0.95" = 0.95, "0.99" = 0.99),
-                            selected = 0.99)
+                            selected = 0.95)
     } else {
       radioButtons("locScale.eff", "Asymptotic Efficiency",
                             choices  = c("0.85" = 0.85, "0.9" = 0.9, "0.95" = 0.95),
@@ -1038,7 +1049,7 @@ shinyServer(function(input, output) {
   # On-click, find the estimators and create string object of results
   contents_estimators <- eventReactive(input$locScale.display, {
     if (is.null(dim(values$dat))) {
-        return(paste0("<font color=\"#FF0000\"><b>", "ERROR: No data loaded!", "</b><font>"))
+      return(paste0("<font color=\"#FF0000\"><b>", "ERROR: No data loaded!", "</b><font>"))
     }
     
     data <- as.numeric(values$dat[, input$locScale.variable])
@@ -1112,6 +1123,18 @@ shinyServer(function(input, output) {
 #######################
 
   ## Running Regression ##
+  
+  output$linRegress.dataset <- renderUI({
+    if (is.null(dim(values$dat))) {
+      disabled(textInput("linRegress.dataset", "Dataset", "NA"))
+    } else {
+      fluidRow(
+        disabled(textInput("linRegress.dataset", "Dataset", input$dataset)),
+        
+        actionButton("linRegress.changeData", "Choose Data")
+      )
+    }
+  })
   
   values$linRegress.methods <- c("LS", "M", "MM", "DCML")
   values$linRegress.functions  <- c("lm", "lmrobM", "lmrobdetMM", "lmrobdetDCML")
@@ -1285,44 +1308,44 @@ shinyServer(function(input, output) {
           tabPanel("",
             tags$hr(),
             
-            h4("Robust Controls 1"),
+            h4("Robust Regression Choices"),
             
             selectInput("linRegress.family", "Family",
-                        choices = c("Bisquare" = "bisquare",
-                                    "Opt."      = "optimal",
-                                    "Mod. Opt." = "modopt"),
-                        selected = "optimal"),
+                        choices = c("bisquare" = "bisquare",
+                                    "opt"      = "opt",
+                                    "mopt" = "mopt"),
+                        selected = "mopt"),
             
-            numericInput("linRegress.eff", "Efficiency", value = 0.99, min = 0.80, max = 0.99, step = 0.01)
+            numericInput("linRegress.eff", "Efficiency", value = 0.95, min = 0.80, max = 0.99, step = 0.01)
           )
         } else {
           tabPanel("",
             tags$hr(),
             
-            h4("Robust Controls"),
+            h4("Robust Regression Choices"),
             
             selectInput("linRegress.family", "Family",
-                        choices = c("Bi-square" = "bisquare",
-                                    "Opt."      = "optimal",
-                                    "Mod. Opt." = "modopt"),
-                        selected = "optimal"),
+                        choices = c("bisquare" = "bisquare",
+                                    "opt"      = "opt",
+                                    "mopt" = "mopt"),
+                        selected = "mopt"),
             
-            numericInput("linRegress.eff", "Efficiency", value = 0.99, min = 0.80, max = 0.99, step = 0.01)
+            numericInput("linRegress.eff", "Efficiency", value = 0.95, min = 0.80, max = 0.99, step = 0.01)
           )
         }
       } else {
         tabPanel("",
           tags$hr(),
           
-          h4("Robust Controls"),
+          h4("Robust Regression Choices"),
           
           selectInput("linRegress.family", "Family",
-                      choices = c("Bi-square" = "bisquare",
-                                  "Opt."      = "optimal",
-                                  "Mod. Opt." = "modopt"),
-                      selected = "optimal"),
+                      choices = c("bisquare" = "bisquare",
+                                  "opt"      = "opt",
+                                  "mopt" = "mopt"),
+                      selected = "mopt"),
           
-          numericInput("linRegress.eff", "Efficiency", value = 0.99, min = 0.80, max = 0.99, step = 0.01)
+          numericInput("linRegress.eff", "Efficiency", value = 0.95, min = 0.80, max = 0.99, step = 0.01)
         )
       }
     }
@@ -1333,15 +1356,15 @@ shinyServer(function(input, output) {
       tabPanel("",
         tags$hr(),
         
-        h4("Robust Controls 2"),
+        h4("Robust Regression Choices"),
         
         selectInput("linRegress.family2", "Family",
-                    choices = c("Bi-square" = "bisquare",
-                                "Opt."      = "optimal",
-                                "Mod. Opt." = "modopt"),
-                    selected = "optimal"),
+                    choices = c("bisquare" = "bisquare",
+                                "opt"      = "opt",
+                                "mopt" = "mopt"),
+                    selected = "mopt"),
         
-        numericInput("linRegress.eff2", "Efficiency", value = 0.99, min = 0.80, max = 0.99, step = 0.01)
+        numericInput("linRegress.eff2", "Efficiency", value = 0.95, min = 0.80, max = 0.99, step = 0.01)
       )
     }
   })
@@ -1351,15 +1374,19 @@ shinyServer(function(input, output) {
       output$linRegress.results <- renderText({
         return(paste0("<font color=\"#FF0000\"><b>", "ERROR: No data loaded!", "</b><font>"))
       })
-    } else if (any(is.null(input$linRegress.independent) || is.null(input$linRegress.dependent))) {
+      return()
+    } else if (any(length(input$linRegress.independent) == 0 || length(input$linRegress.dependent) == 0)) {
       output$linRegress.results <- renderText({
         return(paste0("<font color=\"#FF0000\"><b>", "ERROR: Missing independent variables! Please add at least one.", "</b><font>"))
       })
+      return()
     } else if (!is.numeric(values$dat[, input$linRegress.dependent])) {
       output$linRegress.results <- renderText({
         return(paste0("<font color=\"#FF0000\"><b>", invalid_response(), "</b><font>"))
       })
+      return()
     }
+    
       
     if (input$linRegress.second.method) {
       
@@ -1459,6 +1486,10 @@ shinyServer(function(input, output) {
   })
   
   observeEvent(input$linRegress.display.plots, {
+    if (is.null(dim(values$dat))) {
+      return()
+    }
+    
     values$linRegress.plots.active <- T
     
     plots <- vector(mode = "list")
@@ -1575,6 +1606,8 @@ shinyServer(function(input, output) {
     
     # Standardized residuals vs. robust distances
     if (input$linRegress.resid.dist == T) {
+      
+      
       i <- i + 1
       
       title.name <- ifelse(any(class(fit) == "lm"), values$linRegress.models[1], paste("Robust", values$linRegress.models[1]))
@@ -2359,6 +2392,18 @@ shinyServer(function(input, output) {
 ################
 ## Covariance ##
 ################
+  
+  output$covariance.dataset <- renderUI({
+    if (is.null(dim(values$dat))) {
+      disabled(textInput("covariance.dataset", "Dataset", "NA"))
+    } else {
+      fluidRow(
+        disabled(textInput("covariance.dataset", "Dataset", input$dataset)),
+        
+        actionButton("covariance.changeData", "Choose Data")
+      )
+    }
+  })
   
   output$covariance.select.variables <- renderUI({
     if (is.null(dim(values$dat))) {
@@ -3233,6 +3278,18 @@ shinyServer(function(input, output) {
 ## PCA ##
 #########################
   
+  output$pca.dataset <- renderUI({
+    if (is.null(dim(values$dat))) {
+      disabled(textInput("pca.dataset", "Dataset", "NA"))
+    } else {
+      fluidRow(
+        disabled(textInput("pca.dataset", "Dataset", input$dataset)),
+        
+        actionButton("pca.changeData", "Choose Data")
+      )
+    }
+  })
+  
   output$pca.select.variables <- renderUI({
     if (is.null(dim(values$dat))) {
       return("")
@@ -3384,6 +3441,26 @@ shinyServer(function(input, output) {
   #     }
   #   }
   # })
+  
+  observeEvent(input$locScale.changeData, {
+     updateTabsetPanel(session  = getDefaultReactiveDomain(), "main",
+                       selected = "data")
+  })
+  
+  observeEvent(input$linRegress.changeData, {
+    updateTabsetPanel(session  = getDefaultReactiveDomain(), "main",
+                      selected = "data")
+  })
+  
+  observeEvent(input$covariance.changeData, {
+    updateTabsetPanel(session  = getDefaultReactiveDomain(), "main",
+                      selected = "data")
+  })
+  
+  observeEvent(input$pca.changeData, {
+    updateTabsetPanel(session  = getDefaultReactiveDomain(), "main",
+                      selected = "data")
+  })
   
   # Reset all windows once new data set is loaded
   observeEvent(input$display.table, {

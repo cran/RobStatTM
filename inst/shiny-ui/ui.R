@@ -108,11 +108,11 @@ JS.onCall <-
 pkgs <- c("datasets", "RobStatTM", "robustbase", "PerformanceAnalytics")
 
 # Define UI for Shiny Application
-shinyUI(navbarPage("RobStatTM",
+shinyUI(navbarPage("RobStatTM", id = "main",
   
   # Tab to choose a data set
   
-  tabPanel("Data",
+  tabPanel(title = "Data", value = "data",
     sidebarLayout(
       sidebarPanel(
         tags$head(tags$style(HTML(CSS.format1))),
@@ -190,6 +190,11 @@ shinyUI(navbarPage("RobStatTM",
         tags$head(tags$script(HTML(JS.log10))),
         tags$head(tags$script(HTML(JS.onCall))),
         
+        # Display dataset
+        uiOutput("locScale.dataset"),
+        
+        hr(),
+        
         # Renders selection of univariate vectors chosen from
         # dataset
         uiOutput("locScale.select.variable"),
@@ -209,12 +214,12 @@ shinyUI(navbarPage("RobStatTM",
         
         conditionalPanel("input['locScale.method'] != 'classic'",
                          
-           selectInput("locScale.psi", "Score Function (Psi)",
-                       choices = c("Opt."      = "optimal",
-                                   "Mod. Opt." = "modopt",
-                                   "Bisquare"  = "bisquare",
-                                   "Huber"     = "huber"),
-                       selected = "bisquare"),
+           selectInput("locScale.psi", "Rho and Psi Functions",
+                       choices = c("opt"      = "opt",
+                                   "mopt" = "mopt",
+                                   "bisquare"  = "bisquare",
+                                   "huber"     = "huber"),
+                       selected = "mopt"),
            
            uiOutput('locScale.eff.options')
         ),
@@ -238,9 +243,7 @@ shinyUI(navbarPage("RobStatTM",
     ## Linear Regression ##
     tabPanel("Robust Linear Regression",
     h3("Robust Linear Regression"),
-    helpText("Calculate the robust coefficients of several factors using any robust
-             method andcompare to another robust regression or the least-squares
-             equivalent."),
+    helpText("Calculate linear regression coefficients using a robust regression, and compare them to the coefficients of a least squares regression, or another robust regression."),
       tabsetPanel(id = "linear.tabs", type = "tabs",
                   
         # Model selection
@@ -251,6 +254,9 @@ shinyUI(navbarPage("RobStatTM",
               tags$head(tags$style(HTML("hr {border-top: 1px solid #000000;}"))),
               tags$head(tags$script(HTML(JS.log10))),
               tags$head(tags$script(HTML(JS.onCall))),
+              
+              # Display dataset
+              uiOutput("linRegress.dataset"),
               
               checkboxInput("linRegress.second.method", "Add Second Method", value = FALSE),
               
@@ -318,6 +324,9 @@ shinyUI(navbarPage("RobStatTM",
           sidebarLayout(
             sidebarPanel(
               tags$head(tags$style(HTML(CSS.format1))),
+              
+              # Display dataset
+              uiOutput("covariance.dataset"),
               
               uiOutput("covariance.select.variables"),
               
@@ -392,6 +401,9 @@ shinyUI(navbarPage("RobStatTM",
           sidebarLayout(
             sidebarPanel(
               tags$head(tags$style(HTML(CSS.format1))),
+              
+              # Display dataset
+              uiOutput("pca.dataset"),
               
               uiOutput("pca.select.variables"),
               

@@ -1,6 +1,6 @@
 Package: RobStatTM
-Version: 1.0.1
-Date: 2019-08-06
+Version: 1.0.2
+Date: 2020-03-02
 Title: Robust Statistics: Theory and Methods
 Authors@R: c(person("Matias", "Salibian-Barrera", role = c("cre"), email = "matias@stat.ubc.ca"),
              person("Victor", "Yohai", role = "aut", email = "vyohai@gmail.com"),
@@ -19,15 +19,15 @@ Description: Companion package for the book: "Robust Statistics: Theory and Meth
 Depends: R (>= 3.5.0), fit.models
 Imports: stats, graphics, utils, methods, DEoptimR, pyinit, rrcov,
         robustbase, shiny, shinyjs, PerformanceAnalytics, DT, ggplot2,
-        gridExtra, robust, xts
-Suggests: knitr
+        gridExtra, xts
+Suggests: knitr, R.rsp
 LazyData: yes
 License: GPL (>= 3)
 RoxygenNote: 6.1.1
 Encoding: UTF-8
-VignetteBuilder: knitr
+VignetteBuilder: knitr, R.rsp
 NeedsCompilation: yes
-Packaged: 2019-08-06 20:46:39 UTC; matias
+Packaged: 2020-03-02 20:35:25 UTC; matias
 Author: Matias Salibian-Barrera [cre],
   Victor Yohai [aut],
   Ricardo Maronna [aut],
@@ -42,4 +42,4 @@ Author: Matias Salibian-Barrera [cre],
   Matias Salibian-Barrera [aut]
 Maintainer: Matias Salibian-Barrera <matias@stat.ubc.ca>
 Repository: CRAN
-Date/Publication: 2019-08-06 22:50:02 UTC
+Date/Publication: 2020-03-03 00:30:02 UTC

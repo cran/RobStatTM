@@ -4,7 +4,7 @@
 \alias{lmrobdet.control}
 \title{Tuning parameters for lmrobdetMM and lmrobdetDCML}
 \usage{
-lmrobdet.control(bb = 0.5, efficiency = 0.99, family = "optimal",
+lmrobdet.control(bb = 0.5, efficiency = 0.95, family = "mopt",
   tuning.psi, tuning.chi, compute.rd = FALSE, corr.b = TRUE,
   split.type = "f", initial = "S", max.it = 100,
   refine.tol = 1e-07, rel.tol = 1e-07, refine.PY = 10,
@@ -18,17 +18,16 @@ lmrobdet.control(bb = 0.5, efficiency = 0.99, family = "optimal",
 determines the robusness (breakdown point) of the resulting MM-estimator, which is
 \code{bb}. Defaults to 0.5.}
 
-\item{efficiency}{desired asymptotic efficiency of the final regression M-estimator. Defaults to 0.85.}
+\item{efficiency}{desired asymptotic efficiency of the final regression M-estimator. Defaults to 0.95.}
 
 \item{family}{string specifying the name of the family of loss function to be used (current valid
-options are "bisquare", "optimal" and "modopt"). Incomplete entries will be matched to
-the current valid options.}
+options are "bisquare", "opt" and "mopt"). Incomplete entries will be matched to the current valid options. Defaults to "mopt".}
 
 \item{tuning.psi}{tuning parameters for the regression M-estimator computed with a rho function
 as specified with argument \code{family}. If missing, it is computed inside \code{lmrobdet.control} to match
 the value of \code{efficiency} according to the family of rho functions specified in \code{family}.
 Appropriate values for \code{tuning.psi} for a given desired efficiency for Gaussian errors
-can be constructed using the functions \link{bisquare}, \link{modopt} and \link{optimal}.}
+can be constructed using the functions \link{bisquare}, \link{mopt} and \link{opt}.}
 
 \item{tuning.chi}{tuning constant for the function used to compute the M-scale
 used for the initial S-estimator. If missing, it is computed inside \code{lmrobdet.control} to match
@@ -87,6 +86,14 @@ A list with the necessary tuning parameters.
 This function sets tuning parameters for the MM estimator implemented in \code{lmrobdetMM} and
 the Distance Constrained Maximum Likelihood regression estimators
 computed by \code{lmrobdetDCML}.
+}
+\details{
+The argument \code{family} specifies the name of the family of loss function to be used. Current valid
+options are "bisquare", "opt" and "mopt"--"opt" refers to the optimal psi function defined in Section 5.8.1. of the
+book Robust Statistics: Theory and Methods (with R) by Maronna, Martin, Yohai and Salibian-Barrera,
+"mopt" is a modified  version of the optimal psi function to make it
+strictly increasing close to 0, and to make the corresponding weight function
+non-increasing near 0.
 }
 \examples{
 data(coleman, package='robustbase')
