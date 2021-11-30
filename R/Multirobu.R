@@ -19,15 +19,17 @@
 #' of variables is greater than or equal to 10, and "MM" otherwise.
 #' @param maxit Maximum number of iterations, defaults to 50.
 #' @param tol Tolerance for convergence, defaults to 1e-4.
-#' @param cor A logical value. If \code{TRUE} a correlation matrix is included in the element \code{cor} of the returned object. Defaults to \code{FALSE}.
+#' @param corr A logical value. If \code{TRUE} a correlation matrix is included in the element \code{cor} of the returned object. Defaults to \code{FALSE}.
 #'
 #' @return A list with class \dQuote{covClassic} with the following components:
-#' \item{mu}{The location estimate}
-#' \item{V}{The scatter matrix estimate, scaled for consistency at the normal distribution}
-#' \item{center}{The location estimate. Same as \code{mu} above.}
-#' \item{cov}{The scatter matrix estimate, scaled for consistency at the normal distribution. Same as \code{V} above.}
+#' \item{center}{The location estimate.}
+#' \item{cov}{The scatter matrix estimate, scaled for consistency at the normal distribution.}
 #' \item{cor}{The correlation matrix estimate, if the argument \code{cor} equals \code{TRUE}. Otherwise it is set to \code{NULL}.}
 #' \item{dist}{Robust Mahalanobis distances}
+#' \item{wts}{weights}
+#' \item{call}{an image of the call that produced the object with all the arguments named. The matched call.}
+#' \item{mu}{The location estimate. Same as \code{center} above.}
+#' \item{V}{The scatter matrix estimate, scaled for consistency at the normal distribution. Same as \code{cov} above.}
 #'
 #' @author Ricardo Maronna, \email{rmaronna@retina.ar}
 #'
@@ -42,7 +44,8 @@
 #' round(tmp$cov[1:10, 1:10], 3)
 #' tmp$mu
 #'
-covRob <- Multirobu <- function(X, type="auto", maxit=50, tol=1e-4, cor=FALSE)  {
+covRob <- Multirobu <- function(X, type="auto", maxit=50, tol=1e-4, corr=FALSE)  {
+  cl <- match.call()
 if (type=="auto") {
   p=dim(X)[2]
   if (p<10) {type="MM"
@@ -50,13 +53,14 @@ if (type=="auto") {
 }
 
  if (type=="Rocke") {
-   resu=RockeMulti(X, maxit=maxit, tol=tol, cor=cor)
- } else {resu=MMultiSHR(X, maxit=maxit, tolpar=tol, cor=cor)  #MM
+   resu=RockeMulti(X, maxit=maxit, tol=tol, corr=corr)
+ } else {resu=MMultiSHR(X, maxit=maxit, tolpar=tol, corr=corr)  #MM
  }
   mu=resu$mu; V=resu$V
 
   # Feed list into object and give class
-  z <- list(mu=mu, V=V, dist=mahalanobis(X,mu,V), cov=V, center=mu, cor=resu$cor, corr=FALSE)
+  z <- list(center=mu, cov=V, cor=resu$cor, dist=mahalanobis(X,mu,V), 
+            wts = resu$wts, call=cl, mu=mu, V=V)
   class(z) <- c("covRob")
   return(z)
 }
@@ -81,16 +85,18 @@ if (type=="auto") {
 #' @param qs Tuning paramater for Rocke's loss functions.
 #' @param maxit Maximum number of iterations.
 #' @param tol Tolerance to decide converngence.
-#' @param cor A logical value. If \code{TRUE} a correlation matrix is included in the element \code{cor} of the returned object. Defaults to \code{FALSE}.
+#' @param corr A logical value. If \code{TRUE} a correlation matrix is included in the element \code{cor} of the returned object. Defaults to \code{FALSE}.
 #'
 #' @return A list with class \dQuote{covRob} containing the following elements:
-#' \item{mu}{The location estimate}
-#' \item{V}{The scatter (or correlation) matrix estimate, scaled for consistency at the normal distribution}
-#' \item{center}{The location estimate. Same as \code{mu} above.}
-#' \item{cov}{The scatter matrix estimate, scaled for consistency at the normal distribution. Same as \code{V} above.}
+#' \item{center}{The location estimate.}
+#' \item{cov}{The scatter matrix estimate, scaled for consistency at the normal distribution.}
 #' \item{cor}{The correlation matrix estimate, if the argument \code{cor} equals \code{TRUE}. Otherwise it is set to \code{NULL}.}
-#' \item{dista}{Robust Mahalanobis distances.}
-#' \item{w}{weights}
+#' \item{dist}{Robust Mahalanobis distances.}
+#' \item{wts}{weights}
+#' \item{call}{an image of the call that produced the object with all the arguments named. The matched call.}
+#' \item{mu}{The location estimate. Same as \code{center} above.}
+#' \item{V}{The scatter (or correlation) matrix estimate, scaled for consistency at the normal distribution.  Same as \code{cov} above.}
+#' \item{sig}{sig}
 #' \item{gamma}{Final value of the constant gamma that regulates the efficiency.}
 #'
 #' @author Ricardo Maronna, \email{rmaronna@retina.ar}
@@ -105,59 +111,57 @@ if (type=="auto") {
 #' round(tmp$cov[1:10, 1:10], 3)
 #' tmp$mu
 #'
-covRobRocke <- RockeMulti <- function(X, initial='K', maxsteps=5, propmin=2, qs=2, maxit=50, tol=1e-4, cor=FALSE)
+covRobRocke <- RockeMulti <- function(X, initial='K', maxsteps=5, propmin=2, qs=2, maxit=50, tol=1e-4, corr=FALSE)
 {
+  # Henceforth 'eq' refers to equation numbers in Maronna et al.(2019)
+  cl <- match.call()
   d <- dim(X)
   n <- d[1]
   p <- d[2]
-
-
-  gamma0 <- consRocke(p=p, n=n, initial )$gamma # tuning constant
-  if(initial=='K')
-{  out=KurtSDNew(X)
-   mu0=out$center; V0=out$cova
-   V0=V0/(det(V0)^(1/p))
-dista0=mahalanobis(X,mu0,V0)
-dista=dista0}
-
-if(initial=='mve')
-{out=fastmve(X)
-
-mu0=out$center
+  gamma0 <- consRocke(p=p, n=n, initial )$gamma # gamma in eq. (6.40)
+  if(initial=='K') {  #KSD start
+    out=KurtSDNew(X)
+    mu0=out$center
+    V0=out$cova
+    V0=V0/(det(V0)^(1/p))
+    dista0=mahalanobis(X,mu0,V0)
+    dista=dista0
+  }
+  if(initial=='mve') { #MVE start
+    out=fastmve(X)
+    mu0=out$center
     V0=out$cov
-   V0=V0/(det(V0)^(1/p))
-dista0=mahalanobis(X,mu0,V0)
-dista=dista0}
-
-
+    V0=V0/(det(V0)^(1/p))
+    dista0=mahalanobis(X,mu0,V0)
+    dista=dista0
+  }
   delta <- (1-p/n)/2 # max breakdown
-  #gamma0 <- consRocke(p,n,'K')$gamma
-  sig <- MScalRocke(x=dista, gamma=gamma0, q=qs, delta=delta) #Inicializar
-  # %Buscar gama que asegure que al menos p*propmin elementos tengan w>0
+  # Compute M-scale in eq. (6.29)
+  sig <- MScalRocke(x=dista, gamma=gamma0, q=qs, delta=delta) 
   didi <- dista / sig
   dife <- sort( abs( didi - 1) )
+  # If the number of observations with positive weights is less
+  # than propmin*p, then enlarge gamma to avoid instability
   gg <- min( dife[ (1:n) >= (propmin*p) ] )
   gamma <- max(gg, gamma0)
-#print(gamma)
   sig0 <- MScalRocke(x=dista, gamma=gamma, delta=delta, q=qs)
-
   iter <- 0
   difpar <- difsig <- +Inf
   while( ( ( (difsig > tol) | (difpar > tol) ) &
            (iter < maxit) ) & (difsig > 0) ) {
     iter <- iter + 1
     w <- WRoTru(tt=dista/sig, gamma=gamma, q=qs)
-    mu <- colMeans( X * w ) / mean(w) # as.vector( t(w) %*% X ) / sum(w)
+    mu <- colMeans( X * w ) / mean(w) 
     Xcen <- scale(X, center=mu, scale=FALSE)
     V <- t(Xcen) %*% (Xcen * w) / n;
     V <- V / ( det(V)^(1/p) )
     dista <- mahalanobis(x=X, center=mu, cov=V)
 
-    sig <- MScalRocke(x=dista, gamma=gamma, delta=delta, q=qs)
-    # %Si no desciende, hacer Line search
+    sig <- MScalRocke(x=dista, gamma=gamma, delta=delta, q=qs) #Recompute scale
     step <- 0
     delgrad <- 1
     while( (sig > sig0) & (step < maxsteps) ) {
+      # If needed, perform linear search
       delgrad <- delgrad / 2
       step <- step + 1
       mu <- delgrad * mu + (1 - delgrad)*mu0
@@ -179,20 +183,18 @@ dista=dista0}
   V <- tmp$V
   ff <- tmp$ff
   dista <- dista/ff
-
-  # GSB: Feed list into object and give class
-
-  if(cor) {
+  if(corr) {
     cor.mat <- cov2cor(V)
   } else cor.mat <- NULL
-
-  z <- list(mu=mu, V=V, sig=sig, dista=dista, w=w, gamma=gamma, cov=V, center=mu, cor=cor.mat)
+  z <- list(center=mu, cov=V, cor=cor.mat, dist=dista, wts=w, call = cl, 
+            mu=mu, V=V, sig=sig, gamma=gamma)
   class(z) <- c("covRob")
   return(z)
 }
 
 consRocke <- function(p, n, initial) {
-  if(initial=='M') {
+  # The constants in Section 6.10.4 of Maronna et al. (2019)
+  if (initial == "mve") { 
     beta <- c(-5.4358, -0.50303, 0.4214)
   } else {
     beta <- c(-6.1357, -1.0078, 0.81564)
@@ -323,15 +325,17 @@ rhoinv <- function(x)
 #' @param X a data matrix with observations in rows.
 #' @param maxit Maximum number of iterations.
 #' @param tolpar Tolerance to decide converngence.
-#' @param cor A logical value. If \code{TRUE} a correlation matrix is included in the element \code{cor} of the returned object. Defaults to \code{FALSE}.
+#' @param corr A logical value. If \code{TRUE} a correlation matrix is included in the element \code{cor} of the returned object. Defaults to \code{FALSE}.
 #'
 #' @return A list with class \dQuote{covRob} containing the following elements
-#' \item{mu}{The location estimate}
-#' \item{V}{The scatter or correlation matrix estimate, scaled for consistency at the normal distribution}
-#' \item{center}{The location estimate. Same as \code{mu} above.}
+#' \item{center}{The location estimate.}
 #' \item{cov}{The scatter matrix estimate, scaled for consistency at the normal distribution. Same as \code{V} above.}
 #' \item{cor}{The correlation matrix estimate, if the argument \code{cor} equals \code{TRUE}. Otherwise it is set to \code{NULL}.}
-#' \item{dista}{Robust Mahalanobis distances}
+#' \item{dist}{Robust Mahalanobis distances}
+#' \item{wts}{weights}
+#' \item{call}{an image of the call that produced the object with all the arguments named. The matched call.}
+#' \item{mu}{The location estimate. Same as \code{center} above.}
+#' \item{V}{The scatter or correlation matrix estimate, scaled for consistency at the normal distribution}
 #'
 #' @author Ricardo Maronna, \email{rmaronna@retina.ar}
 #'
@@ -345,7 +349,8 @@ rhoinv <- function(x)
 #' round(tmp$cov[1:10, 1:10], 3)
 #' tmp$mu
 #'
-covRobMM <- MMultiSHR <- function(X, maxit=50, tolpar=1e-4, cor=FALSE) {
+covRobMM <- MMultiSHR <- function(X, maxit=50, tolpar=1e-4, corr=FALSE) {
+  cl <- match.call()
   d <- dim(X)
   n <- d[1]; p <- d[2]
   delta <- 0.5*(1-p/n) #max. breakdown
@@ -382,11 +387,12 @@ covRobMM <- MMultiSHR <- function(X, maxit=50, tolpar=1e-4, cor=FALSE) {
 
   # GSB: Feed list into object and give class
 
-  if(cor) {
+  if(corr) {
     cor.mat <- cov2cor(tmp$V)
   } else cor.mat <- NULL
 
-  z <- list(V=tmp$V, mu=mu0, dista=dista, w=w, center=mu0, cov=tmp$V, cor=cor.mat)
+  z <- list(center=mu0, cov=tmp$V, cor=cor.mat, dist=dista, wts=w, 
+            call = cl, mu=mu0, V=tmp$V)
   class(z) <- c("covRob")
   return(z)
 }
@@ -701,12 +707,11 @@ rhoinv <- function(x)
 #' @param unbiased a logical flag. If \code{TRUE} the unbiased estimator is returned (computed with denominator equal to \code{n-1}), else the MLE (computed with denominator equal to \code{n}) is returned.
 #'
 #' @return a list with class \dQuote{covClassic} containing the following elements:
-#' \item{call}{an image of the call that produced the object with all the arguments named.}
-#' \item{cov}{a numeric matrix containing the estimate of the covariance/correlation matrix.}
 #' \item{center}{a numeric vector containing the estimate of the location vector.}
+#' \item{cov}{a numeric matrix containing the estimate of the covariance matrix.}
+#' \item{cor}{a numeric matrix containing the estimate of the correlation matrix if the argument \code{corr = TRUE}. Otherwise it is set to \code{NULL}.}
 #' \item{dist}{a numeric vector containing the squared Mahalanobis distances. Only present if \code{distance = TRUE} in the \code{call}.}
-#' \item{corr}{a logical flag.  If \code{corr = TRUE} then \code{cov}
-#' contains an estimate of the correlation matrix of \code{x}.}
+#' \item{call}{an image of the call that produced the object with all the arguments named. The matched call.}
 #'
 #' @note Originally, and in S-PLUS, this function was called \code{cov}; it has
 #' been renamed, as that did mask the function in the standard package \pkg{stats}.
@@ -747,7 +752,9 @@ covClassic <- function(data, corr = FALSE, center = TRUE, distance = TRUE,
 
   if(corr) {
     std <- sqrt(diag(covmat))
-    covmat <- covmat / (std %o% std)
+    cormat <- covmat / (std %o% std)
+  } else { 
+    cormat <- NULL
   }
 
   dimnames(covmat) <- list(colNames, colNames)
@@ -756,8 +763,9 @@ covClassic <- function(data, corr = FALSE, center = TRUE, distance = TRUE,
   if(distance)
     names(dist) <- rowNames
 
-  ans <- list(call = the.call, cov = covmat, center = center, dist = dist, corr = corr)
-  oldClass(ans) <- c("covClassic")
+  ans <- list(center = center, cov = covmat, cor=cormat, dist = dist, call = the.call)
+  # oldClass(ans) <- c("covClassic")
+  class(ans) <- c("covClassic")
   ans
 }
 
@@ -766,32 +774,45 @@ covClassic <- function(data, corr = FALSE, center = TRUE, distance = TRUE,
 #' @export
 summary.covRob <- function (object, ...)
 {
+  if( is.null(object$cor) ) {
     evals <- eigen(object$cov, symmetric = TRUE, only.values = TRUE)$values
     names(evals) <- paste("Eval.", 1:length(evals))
     object$evals <- evals
-    object <- object[c("cov", "center", "evals", "dist")]
-    oldClass(object) <- "summary.covRob"
-    object
+    object <- object[c("call", "cov", "center", "evals", "dist")]
+  } else {
+    evals <- eigen(object$cor, symmetric = TRUE, only.values = TRUE)$values
+    names(evals) <- paste("Eval.", 1:length(evals))
+    object$evals <- evals
+    object <- object[c("call", "cov", "cor", "center", "evals")]
+  }
+  # oldClass(object) <- "summary.covRob"
+  class(object) <- "summary.covRob"
+  object
 }
 
+#' @export
 print.summary.covRob <- function (x, digits = max(3, getOption("digits") - 3), print.distance = TRUE,
-    ...)
-{
+    ...) {
+  if( is.null(x$cor) ) {
     cat("Robust Estimates of Covariance: \n")
     print(x$cov, digits = digits, ...)
-
-    cat("\n Robust Estimates of Location: \n")
-    print(x$center, digits = digits, ...)
-
-    cat("\nEigenvalues: \n")
-    print(x$evals, digits = digits, ...)
-
-    if (print.distance && !is.null(x$dist)) {
-        cat("\nSquared Mahalanobis Distances: \n")
-        print(x$dist, digits = digits, ...)
-    }
-
-    invisible(x)
+  } else {
+    cat("Robust Estimates of Correlation: \n")
+    print(x$cor, digits = digits, ...)
+  }
+  
+  cat("\n Robust Estimates of Location: \n")
+  print(x$center, digits = digits, ...)
+  
+  cat("\nEigenvalues: \n")
+  print(x$evals, digits = digits, ...)
+  
+  if (print.distance && !is.null(x$dist)) {
+    cat("\nSquared Mahalanobis Distances: \n")
+    print(x$dist, digits = digits, ...)
+  }
+  
+  invisible(x)
 }
 
 # These were taken from the robust package
@@ -799,24 +820,38 @@ print.summary.covRob <- function (x, digits = max(3, getOption("digits") - 3), p
 #' @export
 summary.covClassic <- function (object, ...)
 {
+  if( is.null(object$cor) ) {
     evals <- eigen(object$cov, symmetric = TRUE, only.values = TRUE)$values
     names(evals) <- paste("Eval.", 1:length(evals))
     object$evals <- evals
-
-    object <- object[c("call", "cov", "center", "evals", "dist",
-        "corr")]
-
-    oldClass(object) <- "summary.covClassic"
+    object <- object[c("call", "cov", "center", "evals", "dist")]
+  } else {
+    evals <- eigen(object$cor, symmetric = TRUE, only.values = TRUE)$values
+    names(evals) <- paste("Eval.", 1:length(evals))
+    object$evals <- evals
+    object <- object[c("call", "cov", "cor", "center", "evals")]
+  }
+    # oldClass(object) <- "summary.covClassic"
+    class(object) <- "summary.covClassic"
     object
 }
 
+#' @export
 print.summary.covClassic <- function (x, digits = max(3, getOption("digits") - 3), print.distance = TRUE,
     ...)
 {
-    if (x$corr)
-        cat("\nClassical Estimate of Correlation: \n")
-    else cat("\nClassical Estimate of Covariance: \n")
+  if( is.null(x$cor) ) {
+    cat("Classical Estimates of Covariance: \n")
     print(x$cov, digits = digits, ...)
+  } else {
+    cat("Classical Estimates of Correlation: \n")
+    print(x$cor, digits = digits, ...)
+  }
+    # 
+    # if (x$corr)
+    #     cat("\nClassical Estimate of Correlation: \n")
+    # else cat("\nClassical Estimate of Covariance: \n")
+    # print(x$cov, digits = digits, ...)
 
     cat("\nClassical Estimate of Location: \n")
     print(x$center, digits = digits, ...)

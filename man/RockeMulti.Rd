@@ -5,8 +5,16 @@
 \alias{RockeMulti}
 \title{Rocke's robust multivariate location and scatter estimator}
 \usage{
-covRobRocke(X, initial = "K", maxsteps = 5, propmin = 2, qs = 2,
-  maxit = 50, tol = 1e-04, cor = FALSE)
+covRobRocke(
+  X,
+  initial = "K",
+  maxsteps = 5,
+  propmin = 2,
+  qs = 2,
+  maxit = 50,
+  tol = 1e-04,
+  corr = FALSE
+)
 }
 \arguments{
 \item{X}{a data matrix with observations in rows.}
@@ -26,17 +34,19 @@ be at least p (the number of columns of X) times propmin.}
 
 \item{tol}{Tolerance to decide converngence.}
 
-\item{cor}{A logical value. If \code{TRUE} a correlation matrix is included in the element \code{cor} of the returned object. Defaults to \code{FALSE}.}
+\item{corr}{A logical value. If \code{TRUE} a correlation matrix is included in the element \code{cor} of the returned object. Defaults to \code{FALSE}.}
 }
 \value{
 A list with class \dQuote{covRob} containing the following elements:
-\item{mu}{The location estimate}
-\item{V}{The scatter (or correlation) matrix estimate, scaled for consistency at the normal distribution}
-\item{center}{The location estimate. Same as \code{mu} above.}
-\item{cov}{The scatter matrix estimate, scaled for consistency at the normal distribution. Same as \code{V} above.}
+\item{center}{The location estimate.}
+\item{cov}{The scatter matrix estimate, scaled for consistency at the normal distribution.}
 \item{cor}{The correlation matrix estimate, if the argument \code{cor} equals \code{TRUE}. Otherwise it is set to \code{NULL}.}
-\item{dista}{Robust Mahalanobis distances.}
-\item{w}{weights}
+\item{dist}{Robust Mahalanobis distances.}
+\item{wts}{weights}
+\item{call}{an image of the call that produced the object with all the arguments named. The matched call.}
+\item{mu}{The location estimate. Same as \code{center} above.}
+\item{V}{The scatter (or correlation) matrix estimate, scaled for consistency at the normal distribution.  Same as \code{cov} above.}
+\item{sig}{sig}
 \item{gamma}{Final value of the constant gamma that regulates the efficiency.}
 }
 \description{

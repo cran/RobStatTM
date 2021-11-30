@@ -36,8 +36,9 @@
 #'
 #' @return A list with the following components:
 #' \item{coefficients}{The estimated vector of regression coefficients}
-#' \item{scale}{The estimated scale of the residuals}
+#' \item{scale}{The robust residual M-scale estimate using the final residuals from the converged iterated weighted least square (IRWLS) algorithm final estimate}
 #' \item{residuals}{The vector of residuals associated with the robust fit}
+#' \item{loss}{Value of the objective function at the final MM-estimator}
 #' \item{converged}{Logical value indicating whether IRWLS iterations for the MM-estimator have converged}
 #' \item{iter}{Number of IRWLS iterations for the MM-estimator}
 #' \item{rweights}{Robustness weights for the MM-estimator}
@@ -45,12 +46,18 @@
 #' \item{rank}{Numeric rank of the fitted linear model}
 #' \item{cov}{The estimated covariance matrix of the regression estimates}
 #' \item{df.residual}{The residual degrees of freedom}
+#' \item{degree.freedom}{The residual degrees of freedom}
+#' \item{scale.S}{Minimum robust scale associated with the preliminary highly robust but inefficient S-estimator.}
+#' \item{r.squared}{The robust multiple correlation coefficient}
+#' \item{adj.r.squared}{The adjusted robust multiple correlation coefficient taking into account the degrees of freedom of each term}
 #' \item{contrasts}{(only where relevant) the contrasts used}
 #' \item{xlevels}{(only where relevant) a record of the levels of the factors used in fitting}
 #' \item{call}{the matched call}
 #' \item{model}{if requested, the model frame used}
 #' \item{x}{if requested, the model matrix used}
 #' \item{y}{if requested, the response vector used}
+#' \item{terms}{The \link{terms} object used.}
+#' \item{assign}{Used to separate continuous from categorical columns in the design matrix}
 #' \item{na.action}{(where relevant) information returned by model.frame on the special handling of NAs}
 #'
 #' @author Matias Salibian-Barrera, \email{matias@stat.ubc.ca}, based on \code{lmrob} from package \code{robustbase}
@@ -1294,12 +1301,12 @@ lmrobM <- function(formula, data, subset, weights, na.action,
 #'
 #' This function computes a robust likelihood ratio test for linear hypotheses.
 #'
-#' @export rob.linear.test lmrobLinTest
-#' @aliases rob.linear.test lmrobLinTest
+#' @export rob.linear.test lmrobdetLinTest
+#' @aliases rob.linear.test lmrobdetLinTest
 #' @rdname rob.linear.test
 #'
-#' @param object1 an \code{lmrob} object with the fit corresponding to the complete model
-#' @param object2 an \code{lmrob} object with the fit corresponding to the model
+#' @param object1 an \code{lmrobdetMM} or \code{lmrobM} object with the fit corresponding to the complete model
+#' @param object2 an \code{lmrobdetMM} or \code{lmrobM} object with the fit corresponding to the model
 #' restricted under the null linear hypothesis.
 #'
 #' @return A list with the following components: c("test","chisq.pvalue","f.pvalue","df")
@@ -1318,7 +1325,7 @@ lmrobM <- function(formula, data, subset, weights, na.action,
 #' oats1M_var <- lmrobM(response1 ~ block, control=cont, data=oats)
 #' ( anov1M_var <- rob.linear.test(oats1M, oats1M_var) )
 #'
-lmrobLinTest <- rob.linear.test <- function(object1, object2)
+lmrobdetLinTest <- rob.linear.test <- function(object1, object2)
 {
   p <- length(object1$coeff)
   q <- length(object1$coeff) - length(object2$coeff)

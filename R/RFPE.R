@@ -1,23 +1,31 @@
 #' Robust Final Prediction Error
 #'
 #' This function computes the robust Final Prediction Errors (RFPE) for a robust regression fit using M-estimates.
-#' It is used internally by \code{\link{step.lmrobdetMM}} and not meant to be used
-#' directly.
 #'
 #' @param object the \code{MM} element (of class \code{\link{lmrob}}) in an object of class \code{\link{lmrobdetMM}}.
 #' @param scale a numeric value specifying the scale estimate used to compute the RFPE. Usually this 
 #' should be the scale estimate from an encompassing model. If \code{NULL}, the scale estimate in 
-#' \code{object} is used.
+#' \code{object} is used. 
+#' @param bothVals a logical value: if \code{TRUE} the function returns the two terms of the RFPE expression separately (equation 
+#' (5.39) in the reference book); otherwise, the value of RFPE is returned. 
 #'
-#' @return the robust final prediction error (numeric).
-#'
+#' @return If the argument \code{bothVals} is \code{FALSE}, the robust final prediction error (numeric). Otherwise,
+#' the two terms of the RFPE expression in equation (5.39), Section 5.6.2 of Maronna
+#' et al. (2019), \url{http://www.wiley.com/go/maronna/robust}, are returned separately 
+#' in a list with components named \code{minRhoMM} and \code{penaltyRFPE}
+#' 
 #' @rdname lmrobdetMM.RFPE
 #' @author Victor Yohai, \email{victoryohai@gmail.com}, Matias Salibian-Barrera, \email{matias@stat.ubc.ca}
 #' @references \url{http://www.wiley.com/go/maronna/robust}
 #' @seealso \code{\link{lmrobdetMM}}
+#' 
+#' @examples
+#' data(coleman, package='robustbase')
+#' m2 <- lmrobdetMM(Y ~ ., data=coleman)
+#' lmrobdetMM.RFPE(m2)
 #'
 #' @export
-lmrobdetMM.RFPE <- function(object, scale = NULL)
+lmrobdetMM.RFPE <- function(object, scale = NULL, bothVals = FALSE)
 {
   if (!object$converged)
     warning("The algorithm did not converge, inference is not recommended.")
@@ -31,27 +39,15 @@ lmrobdetMM.RFPE <- function(object, scale = NULL)
   if (is.null(scale))
     scale <- object$scale
   res <- residuals(object)/scale
-  # psif <- object$control$psi
-  # tun <- object$control$tuning.psi
-  # efficiency <- object$robust.control$efficiency
-  # if (casefold(psif[2]) == "optimal")
-  #   ipsi <- 1
-  # else ipsi <- 2
-  # yc <- object$yc
-  # wf <- .Mwgt.psi1(psi=psif, cc=tun)
-  # a <- sum(Mpsi(x=res, cc=tun, psi=psif, deriv=-1))
-  # b <- p * sum(Mpsi(x=res, cc=tun, psi=psif, deriv=0)^2)
-  # d <- sum(Mpsi(x=res, cc=tun, psi=psif, deriv=1))
-  # a <- mean(rho(u=res, family=object$control$tuning.psi))
-  # b <- p * mean(rhoprime(u=res, family=object$control$tuning.psi)^2)
-  # d <- mean(rhoprime2(u=res, family=object$control$tuning.psi))
-  # tun <- object$control$tuning.psi$cc
   a2 <- mean(rho(u=res, family = object$control$family, cc = object$control$tuning.psi, standardize=TRUE))
   b2 <- p * mean(rhoprime(u=res, family = object$control$family, cc = object$control$tuning.psi, standardize=TRUE)^2)
   d2 <- mean(rhoprime2(u=res, family = object$control$family, cc = object$control$tuning.psi, standardize=TRUE))
-  if (d2 <= 0)
-    return(NA)
-  return( (a2 + b2/d2/length(res)) ) # (a + b/d)*6 / tun^2 )
+  if (d2 <= 0) return(NA)
+  if(!bothVals) {
+    return( (a2 + b2/d2/length(res)) ) # (a + b/d)*6 / tun^2 )
+  } else {
+    return( list(minRhoMM=a2, penaltyRFPE=b2/d2/length(res)) )
+  }
 }
 
 
@@ -215,8 +211,8 @@ drop1.lmrobdetMM <- function (object, scope, scale, keep, ...)
 #' obj <- lmrobdetMM(y ~ ., data=Z, control=cont)
 #' out <- step.lmrobdetMM(obj)
 #'
-#' @export step.lmrobdetMM step.lmrobdet
-step.lmrobdet <- step.lmrobdetMM <- function (object, scope, direction = c("both", "backward", "forward"), trace = TRUE,
+#' @export step.lmrobdetMM
+step.lmrobdetMM <- function (object, scope, direction = c("both", "backward", "forward"), trace = TRUE,
                         keep = NULL, steps = 1000, whole.path=FALSE)
 {
   # object.MM <- object$MM
