@@ -17,6 +17,7 @@ lmrobdet.control(
   max.it = 100,
   refine.tol = 1e-07,
   rel.tol = 1e-07,
+  refine.S.py = 1e-07,
   refine.PY = 10,
   solve.tol = 1e-07,
   trace.lev = 0,
@@ -65,9 +66,11 @@ appropriate when there are categorical explanatory variables in the model.}
 
 \item{max.it}{maximum number of IRWLS iterations for the MM-estimator}
 
-\item{refine.tol}{relative covergence tolerance for the S-estimator}
+\item{refine.tol}{relative convergence tolerance for the S-estimator}
 
-\item{rel.tol}{relative covergence tolerance for the IRWLS iterations for the MM-estimator}
+\item{rel.tol}{relative convergence tolerance for the IRWLS iterations for the MM-estimator}
+
+\item{refine.S.py}{relative convergence tolerance for the local improvements of the Pena-Yohai candidates for the S-estimator}
 
 \item{refine.PY}{number of refinement steps for the Pen~a-Yohai candidates}
 
@@ -106,13 +109,34 @@ the Distance Constrained Maximum Likelihood regression estimators
 computed by \code{lmrobdetDCML}.
 }
 \details{
-The argument \code{family} specifies the name of the family of loss function to be used. Current valid
-options are "bisquare", "opt" and "mopt"--"opt" refers to the optimal psi function defined in Section 5.8.1. of the
-book Robust Statistics: Theory and Methods (with R) by Maronna, Martin, Yohai and Salibian-Barrera,
-"mopt" is a modified  version of the optimal psi function to make it
-strictly increasing close to 0, and to make the corresponding weight function
-non-increasing near 0.
+The argument \code{family} specifies the name of the family of loss
+function to be used. Current valid options are "bisquare", "opt", "mopt", 
+"optV0" and "moptV0". "mopt" is a modified  version of the optimal psi 
+function to make it strictly increasing close to 0, and to make the
+corresponding weight function non-increasing.
 }
+\section{Choice of Rho Loss Function}{
+
+
+As of RobStatTM Versopm 1.0.7, the opt and mopt rhos functions are
+calculated using polynomials, rather than using the standard normal error
+function (erf) as in versions of RobStatTM prior to 1.0.7. The numerical
+results one now gets with the opt or mopt choices will differ by small
+amounts from those in earlier RobStatTM versions. Users who wish to replicate
+results from releases prior to 1.0.7 may do so using the family arguments
+family = "optV0" or family = "moptV0". Note that the derivative of the rho
+loss function, known as the "psi" function, is not the derivative of the rho
+polynomial,instead it is still the analytic optimal psi function whose formula
+is given in the second of the Vignettes referenced just below.
+}
+
+\section{Related Vignettes}{
+ 
+
+For further details, see the Vignettes "Polynomial Opt and mOpt Rho Functions",
+and "Optimal Bias Robust Regression Psi and Rho".
+}
+
 \examples{
 data(coleman, package='robustbase')
 m2 <- lmrobdetMM(Y ~ ., data=coleman, control=lmrobdet.control(refine.PY=50))

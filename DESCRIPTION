@@ -1,6 +1,6 @@
 Package: RobStatTM
-Version: 1.0.5
-Date: 2022-04-18
+Version: 1.0.7
+Date: 2023-04-03
 Title: Robust Statistics: Theory and Methods
 Authors@R: c(person("Matias", "Salibian-Barrera", role = c("cre"), email = "matias@stat.ubc.ca"),
              person("Victor", "Yohai", role = "aut", email = "vyohai@gmail.com"),
@@ -17,15 +17,15 @@ Authors@R: c(person("Matias", "Salibian-Barrera", role = c("cre"), email = "mati
             )
 Description: Companion package for the book: "Robust Statistics: Theory and Methods, second edition", <http://www.wiley.com/go/maronna/robust>.  This package contains code that implements the robust estimators discussed in the recent second edition of the book above, as well as the scripts reproducing all the examples in the book.
 Depends: R (>= 3.5.0)
-Imports: stats, graphics, utils, methods, pyinit, rrcov, robustbase
+Imports: stats, pyinit, rrcov, robustbase
 Suggests: R.rsp
 LazyData: yes
 License: GPL (>= 3)
-RoxygenNote: 7.1.1
+RoxygenNote: 7.2.3
 Encoding: UTF-8
 VignetteBuilder: R.rsp
 NeedsCompilation: yes
-Packaged: 2022-04-18 17:38:50 UTC; Matias
+Packaged: 2023-04-05 05:19:20 UTC; Matias
 Author: Matias Salibian-Barrera [cre],
   Victor Yohai [aut],
   Ricardo Maronna [aut],
@@ -40,4 +40,4 @@ Author: Matias Salibian-Barrera [cre],
   Matias Salibian-Barrera [aut]
 Maintainer: Matias Salibian-Barrera <matias@stat.ubc.ca>
 Repository: CRAN
-Date/Publication: 2022-04-18 18:04:29 UTC
+Date/Publication: 2023-04-05 11:23:19 UTC

@@ -1,7 +1,7 @@
 # The supported rho families.
 
 #FAMILY.NAMES <- c("bisquare", "ggw", "hampel", "huber", "lqq", "mopt", "opt", "welsh")
-FAMILY.NAMES <- c("bisquare", "mopt", "opt", "huber")
+FAMILY.NAMES <- c("bisquare", "mopt", "opt", "moptv0", "optv0", "huber")
 
 #' Tuning parameter the rho loss functions
 #'
@@ -74,6 +74,41 @@ bisquare <- function(e) #, breakdown.point)
 #'
 #' @examples
 #' # Tuning parameters for an 85%-efficient M-estimator at a Gaussian model
+#' optv0(.85)
+#'
+#' @export
+optv0 <- function(e)
+{
+  if( e > .9999) {
+    e <- .9999
+    warning("Current implementation of \'opt\' or \'mopt\' only allows efficiencies up to 99.99%. Efficiency set to 99.99% for this call.")
+  }
+  a <- findTuningConstFromGaussianEfficiency(e, "optv0")
+  cc <- c(a, psiSupportFromTuningConst(a, "optv0"), 1.0)
+  cc[5] <- Psi_optimal(cc[2], cc[1])
+  cc[6] <- Psi_optimal(cc[3], cc[1]) - cc[5]
+  names(cc) <- c("a", "lower", "upper", "c", "Psi(lower)", "rho(Inf)")
+  cc
+}
+
+#' Tuning parameter for a rho function in the (asymptotic bias-) optimal family
+#'
+#' This function computes the tuning constant that yields an MM-regression
+#' estimator with a desired asymptotic efficiency when computed with a
+#' rho function in the corresponding family. The output of this
+#' function can be passed to the functions \link{lmrobdet.control},
+#' \link{mscale} and \link{rho}.
+#'
+#' @param e the desired efficiency of the corresponding regression
+#' estimator for Gaussian errors
+#'
+#' @return A vector with named elements containing the corresponding tuning
+#' parameters.
+#'
+#' @author Kjell Konis
+#'
+#' @examples
+#' # Tuning parameters for an 85%-efficient M-estimator at a Gaussian model
 #' opt(.85)
 #'
 #' @export
@@ -84,13 +119,50 @@ opt <- function(e)
     warning("Current implementation of \'opt\' or \'mopt\' only allows efficiencies up to 99.99%. Efficiency set to 99.99% for this call.")
   }
   a <- findTuningConstFromGaussianEfficiency(e, "opt")
-  cc <- c(a, psiSupportFromTuningConst(a, "opt"), 1.0)
-  cc[5] <- Psi_optimal(cc[2], cc[1])
-  cc[6] <- Psi_optimal(cc[3], cc[1]) - cc[5]
-  names(cc) <- c("a", "lower", "upper", "c", "Psi(lower)", "rho(Inf)")
-  cc
+  # cc <- c(a, psiSupportFromTuningConst(a, "opt"), 1.0)
+  # cc[5] <- Psi_optimal(cc[2], cc[1])
+  # cc[6] <- Psi_optimal(cc[3], cc[1]) - cc[5]
+  # names(cc) <- c("a", "lower", "upper", "c", "Psi(lower)", "rho(Inf)")
+  # cc
+  a
 }
 
+
+
+#' Tuning parameter for a rho function in the modified (asymptotic bias-) optimal family
+#'
+#' This function computes the tuning constant that yields an MM-regression
+#' estimator with a desired asymptotic efficiency when computed with a
+#' rho function in the corresponding family. The output of this
+#' function can be passed to the functions \link{lmrobdet.control},
+#' \link{mscale} and \link{rho}.
+#'
+#' @param e the desired efficiency of the corresponding regression
+#' estimator for Gaussian errors
+#'
+#' @return A vector with named elements containing the corresponding tuning
+#' parameters.
+#'
+#' @author Kjell Konis
+#'
+#' @examples
+#' # Tuning parameters for an 85%-efficient M-estimator at a Gaussian model
+#' moptv0(.85)
+#'
+#' @export
+moptv0 <- function(e)
+{
+  if( e > .9999) {
+    e <- .9999
+    warning("Current implementation of \'opt\' or \'mopt\' only allows efficiencies up to 99.99%. Efficiency set to 99.99% for this call.")
+  }
+  a <- findTuningConstFromGaussianEfficiency(e, "moptv0")
+  cc <- c(a, DNORM1 / (DNORM1 - a), psiSupportFromTuningConst(a, "moptv0")[2], 1.0)
+  cc[5] <- Psi_optimal(1.0, cc[1])
+  cc[6] <- (0.5 + cc[2] * (Psi_optimal(cc[3], cc[1]) - cc[5]))
+  names(cc) <- c("a", "normConst", "upper", "c", "Psi(1)", "rho(Inf)")
+  cc
+}
 
 #' Tuning parameter for a rho function in the modified (asymptotic bias-) optimal family
 #'
@@ -120,11 +192,7 @@ mopt <- function(e)
     warning("Current implementation of \'opt\' or \'mopt\' only allows efficiencies up to 99.99%. Efficiency set to 99.99% for this call.")
   }
   a <- findTuningConstFromGaussianEfficiency(e, "mopt")
-  cc <- c(a, DNORM1 / (DNORM1 - a), psiSupportFromTuningConst(a, "mopt")[2], 1.0)
-  cc[5] <- Psi_optimal(1.0, cc[1])
-  cc[6] <- (0.5 + cc[2] * (Psi_optimal(cc[3], cc[1]) - cc[5]))
-  names(cc) <- c("a", "normConst", "upper", "c", "Psi(1)", "rho(Inf)")
-  cc
+  a
 }
 
 

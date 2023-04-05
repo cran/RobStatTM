@@ -1,9 +1,9 @@
-#' Robust linear regression estimators
+#' Robust Linear Regression Estimators
 #'
 #' This function computes an MM-regression estimators for linear models
 #' using deterministic starting points.
 #'
-#' This function computes MM-regression estimators
+#' @details This function computes MM-regression estimators
 #' computed using Pen~a-Yohai candidates (instead of subsampling ones).
 #' This function makes use of the functions \code{lmrob.fit},
 #' \code{lmrob..M..fit}, \code{.vcov.avar1}, \code{lmrob.S} and
@@ -11,7 +11,26 @@
 #' along with utility functions used by these functions,
 #' modified so as to include use of the analytic form of the
 #' optimal psi and rho functions (for the optimal psi function , see
-#' Section 5.8.1 of Maronna, Martin, Yohai and Salibian Barrera, 2019)
+#' Section 5.8.1 of Maronna, Martin, Yohai and Salibian Barrera, 2019).
+#' 
+#' @section Choice of Rho Loss Function:
+#' 
+#' This is done by the user choice of family = "opt" or family = "mopt"
+#' in the function lmrobdet.control. As of RobStatTM Versopm 1.0.7, the
+#' opt and mopt rhos functions are calculated using polynomials, rather
+#' than using the standard normal error function (erf) as in versions of
+#' RobStatTM prior to 1.0.7. The numerical results one now gets with the
+#' opt or mopt choices will differ by small amounts from those in earlier
+#' RobStatTM versions. Users who wish to replicate results from releases
+#' prior to 1.0.7 may do so using the family arguments family = "optV0" 
+#' or family = "moptV0". Note that the derivative of the rho loss function,
+#' known as the "psi" function, is not the derivative of the rho polynomial,
+#' instead it is still the optimal psi function referred to above.
+#' 
+#' @section Related Vignettes: 
+#' 
+#' For further details, see the Vignettes "Polynomial Opt and mOpt Rho Functions",
+#' and "Optimal Bias Robust Regression Psi and Rho".
 #'
 #' @param formula a symbolic description of the model to be fit.
 #' @param data an optional data frame, list or environment containing
@@ -57,6 +76,8 @@
 #' \item{x}{if requested, the model matrix used}
 #' \item{y}{if requested, the response vector used}
 #' \item{terms}{The \link{terms} object used.}
+#' \item{iters.py}{The number of refinement iterations for each Pena-Yohai candidate for the S-estimator.}
+#' \item{iters.const}{The number of refinement iterations used to compute the estimator without covariates (to calculate the robust R^2).}
 #' \item{assign}{Used to separate continuous from categorical columns in the design matrix}
 #' \item{na.action}{(where relevant) information returned by model.frame on the special handling of NAs}
 #'
@@ -205,9 +226,12 @@ lmrobdetMM <- function(formula, data, subset, weights, na.action,
           1L
         else 0L
         if(df.int == 1L) {
-          tmp <- as.vector(refine.sm(x=matrix(rep(1,n), n, 1), y=y, initial.beta=median(y),
+          tmp2 <- refine.sm(x=matrix(rep(1,n), n, 1), y=y, initial.beta=median(y),
                                      initial.scale=z$scale, k=500,
-                                     conv=1, family = control$family, cc = control$tuning.psi, step='M')$beta.rw)
+                                     conv=1, family = control$family, cc = control$tuning.psi, step='M',
+                                     tol = control$rel.tol)
+          tmp <- as.vector(tmp2$beta.rw)
+          z$iters.const <- tmp2$iterations
           s02 <- mean(rho((y-tmp)/z$scale, family = control$family, cc=control$tuning.psi))
         } else {
           s02 <- mean(rho(y/z$scale, family = control$family, cc=control$tuning.psi))
@@ -360,8 +384,9 @@ lmrobdetMM <- function(formula, data, subset, weights, na.action,
 #' can be constructed using the functions \link{bisquare}, \link{mopt} and \link{opt}.
 #' @param efficiency desired asymptotic efficiency of the final regression M-estimator. Defaults to 0.95.
 #' @param max.it maximum number of IRWLS iterations for the MM-estimator
-#' @param refine.tol relative covergence tolerance for the S-estimator
-#' @param rel.tol relative covergence tolerance for the IRWLS iterations for the MM-estimator
+#' @param refine.tol relative convergence tolerance for the S-estimator
+#' @param refine.S.py relative convergence tolerance for the local improvements of the Pena-Yohai candidates for the S-estimator
+#' @param rel.tol relative convergence tolerance for the IRWLS iterations for the MM-estimator
 #' @param refine.PY number of refinement steps for the Pen~a-Yohai candidates
 #' @param solve.tol (for the S algorithm): relative tolerance for matrix inversion. Hence, this corresponds to \code{\link{solve.default}}'s tol.
 #' @param trace.lev positive values (increasingly) provide details on the progress of the MM-algorithm
@@ -391,12 +416,29 @@ lmrobdetMM <- function(formula, data, subset, weights, na.action,
 #'
 #' @return A list with the necessary tuning parameters.
 #'
-#' @details The argument \code{family} specifies the name of the family of loss function to be used. Current valid
-#' options are "bisquare", "opt" and "mopt"--"opt" refers to the optimal psi function defined in Section 5.8.1. of the
-#' book Robust Statistics: Theory and Methods (with R) by Maronna, Martin, Yohai and Salibian-Barrera,
-#' "mopt" is a modified  version of the optimal psi function to make it
-#' strictly increasing close to 0, and to make the corresponding weight function
-#' non-increasing near 0.
+#' @details The argument \code{family} specifies the name of the family of loss
+#' function to be used. Current valid options are "bisquare", "opt", "mopt", 
+#' "optV0" and "moptV0". "mopt" is a modified  version of the optimal psi 
+#' function to make it strictly increasing close to 0, and to make the
+#' corresponding weight function non-increasing.
+#' 
+#' @section Choice of Rho Loss Function:
+#' 
+#' As of RobStatTM Versopm 1.0.7, the opt and mopt rhos functions are
+#' calculated using polynomials, rather than using the standard normal error
+#' function (erf) as in versions of RobStatTM prior to 1.0.7. The numerical
+#' results one now gets with the opt or mopt choices will differ by small
+#' amounts from those in earlier RobStatTM versions. Users who wish to replicate
+#' results from releases prior to 1.0.7 may do so using the family arguments
+#' family = "optV0" or family = "moptV0". Note that the derivative of the rho
+#' loss function, known as the "psi" function, is not the derivative of the rho
+#' polynomial,instead it is still the analytic optimal psi function whose formula
+#' is given in the second of the Vignettes referenced just below.
+#' 
+#' @section Related Vignettes: 
+#' 
+#' For further details, see the Vignettes "Polynomial Opt and mOpt Rho Functions",
+#' and "Optimal Bias Robust Regression Psi and Rho".
 #'
 #' @author Matias Salibian-Barrera, \email{matias@stat.ubc.ca}
 #'
@@ -419,6 +461,7 @@ lmrobdet.control <- function(bb = 0.5,
                              split.type = "f",
                              initial='S',
                              max.it = 100, refine.tol = 1e-7, rel.tol = 1e-7,
+                             refine.S.py = 1e-7,
                              refine.PY = 10,
                              solve.tol = 1e-7, trace.lev = 0,
                              psc_keep = 0.5, resid_keep_method = 'threshold',
@@ -426,7 +469,8 @@ lmrobdet.control <- function(bb = 0.5,
                              mscale_maxit = 50, mscale_tol = 1e-06, mscale_rho_fun = 'bisquare')
 {
   family <- match.arg(family, choices = FAMILY.NAMES)
-  if( (efficiency > .9999 ) & ( (family=='mopt') | (family=='opt') ) ) {
+  if( (efficiency > .9999 ) & 
+      ( (family=='mopt') | (family=='opt') | (family=='moptV0') | (family=='optV0') ) ) {
     efficiency <- .9999
     warning("Current implementation of \'opt\' or \'mopt\' only allows efficiencies up to 99.99%. Efficiency set to 99.99% for this call.")
   }
@@ -435,12 +479,24 @@ lmrobdet.control <- function(bb = 0.5,
   if( (length(tuning.psi) == 1) & is.null(names(tuning.psi)) )
     tuning.psi <- c( 'c' = tuning.psi )
   if(missing(tuning.chi))
-    tuning.chi <- adjustTuningVectorForBreakdownPoint(family=family, cc=tuning.psi, breakdown.point = bb)
+    if( (family == 'opt') ) { 
+      tuning.chiv0 <- adjustTuningVectorForBreakdownPoint(family='optv0', cc=tuning.psi[1:6], breakdown.point = bb)
+      tuning.chi <- adjustTuningVectorForBreakdownPoint(family=family, cc=tuning.psi, breakdown.point = bb)
+      tuning.chi['c'] <- tuning.chiv0['c']
+    } else { if( (family == 'mopt') ) { 
+      tuning.chiv0 <- adjustTuningVectorForBreakdownPoint(family='moptv0', cc=tuning.psi[1:6], breakdown.point = bb)
+      tuning.chi <- adjustTuningVectorForBreakdownPoint(family=family, cc=tuning.psi, breakdown.point = bb)
+      tuning.chi['c'] <- tuning.chiv0['c']
+    } else {
+      tuning.chi <- adjustTuningVectorForBreakdownPoint(family=family, cc=tuning.psi, breakdown.point = bb)
+    }
+    }
   return(list(family=family, # psi=psi,
               tuning.chi=tuning.chi, bb=bb, tuning.psi=tuning.psi,
               max.it=max.it,
               refine.tol=refine.tol,
               corr.b = corr.b, refine.PY = refine.PY,
+              refine.S.py = refine.S.py,
               rel.tol=rel.tol,
               solve.tol=solve.tol, trace.lev=trace.lev,
               compute.rd=compute.rd,
@@ -649,8 +705,9 @@ print.summary.lmrobdetMM <- function (x, digits = max(3, getOption("digits") - 3
 #' @param cc tuning constant for the rho function.
 #' @param family string specifying the name of the family of loss function to be used (current
 #' valid options are "bisquare", "opt" and "mopt")
-#' @param step a string indicating whether the iterations are to compute an S-estiamator
+#' @param step a string indicating whether the iterations are to compute an S-estimator
 #' ('S') or an M-estimator ('M')
+#' @param tol tolerance to detect convergence (relative difference of consecutive vectors of parameters)
 #'
 #' @return A list with the following components:
 #' \item{beta.rw}{The updated vector of regression coefficients}
@@ -661,7 +718,7 @@ print.summary.lmrobdetMM <- function (x, digits = max(3, getOption("digits") - 3
 #' @author Matias Salibian-Barrera, \email{matias@stat.ubc.ca}.
 #' @export
 refine.sm <- function(x, y, initial.beta, initial.scale, k=50,
-                      conv=1, b, cc, family, step='M') {
+                      conv=1, b, cc, family, step='M', tol) {
 
   #refine.sm <- function(x, y, initial.beta, initial.scale, k=50,
   #                     conv=1, b, cc, step='M') {
@@ -675,7 +732,8 @@ refine.sm <- function(x, y, initial.beta, initial.scale, k=50,
   f.w <- function(u, family, cc)
     Mwgt(x = u, cc = cc, psi = family)
 
-
+  norm.sm <- function(x) sqrt(sum(x^2))
+  
   n <- dim(x)[1]
   # p <- dim(x)[2]
 
@@ -719,7 +777,7 @@ refine.sm <- function(x, y, initial.beta, initial.scale, k=50,
       }
       if( (conv==1) ) {
         # check for convergence
-        if( norm.sm( beta - beta.1 ) / norm.sm(beta) < 1e-7 ) { # magic number alert!!!
+        if( norm.sm( beta - beta.1 ) / norm.sm(beta) < tol ) { 
           converged <- TRUE
           break
         }
@@ -732,10 +790,9 @@ refine.sm <- function(x, y, initial.beta, initial.scale, k=50,
   }
   # res <- as.vector( y - x %*% beta )
   # get the residuals from the last beta
-  return(list(beta.rw = beta.1, scale.rw = scale, converged=converged))
+  return(list(beta.rw = beta.1, scale.rw = scale, converged=converged,
+              iterations = i))
 }
-
-norm.sm <- function(x) sqrt(sum(x^2))
 
 
 
@@ -1251,7 +1308,8 @@ lmrobM <- function(formula, data, subset, weights, na.action,
         if(df.int == 1L) {
           tmp <- as.vector(refine.sm(x=matrix(rep(1,n), n, 1), y=y, initial.beta=median(y),
                                      initial.scale=z$scale, k=500,
-                                     conv=1, family = control$family, cc = control$tuning.psi, step='M')$beta.rw)
+                                     conv=1, family = control$family, cc = control$tuning.psi, step='M',
+                                     tol=control$rel.tol)$beta.rw)
           s02 <- mean(rho((y-tmp)/z$scale, family = control$family, cc=control$tuning.psi))
         } else {
           s02 <- mean(rho(y/z$scale, family = control$family, cc=control$tuning.psi))
@@ -1327,6 +1385,13 @@ lmrobM <- function(formula, data, subset, weights, na.action,
 #'
 lmrobdetLinTest <- rob.linear.test <- function(object1, object2)
 {
+  tmp1 <- ( ('lmrobdetMM' %in% class(object1)[1] ) | 
+              ('lmrobM' %in% class(object1)[1] ) )
+  tmp2 <- ( ('lmrobdetMM' %in% class(object2)[1] ) | 
+              ('lmrobM' %in% class(object2)[1] ) )
+  if( !( tmp1 & tmp2) )
+    stop('This test only applies to M or MM regression fits.')
+  
   p <- length(object1$coeff)
   q <- length(object1$coeff) - length(object2$coeff)
   n <- length(object1$resid)

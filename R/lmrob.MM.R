@@ -1,4 +1,4 @@
-.Mpsi.R.names <- c('bisquare', 'lqq', 'welsh', 'opt', 'hampel', 'ggw', 'mopt')
+.Mpsi.R.names <- c('bisquare', 'lqq', 'welsh', 'opt', 'hampel', 'ggw', 'mopt', 'optv0', 'moptv0')
 
 .Mpsi.M.names <- c('huber') ## .M: the monotone ones:
 
@@ -25,19 +25,41 @@
     , 'welsh' = 2.11
     , 'ggw' = c(-0.5, 1.5, .95, NA) ## (min{slope}, b ,  eff, bp)
     , 'lqq' = c(-0.5, 1.5, .95, NA) ## (min{slope}, b/c, eff, bp)
-    , 'opt' = c(a = 0.01317965,
-                    lower = 0.03305454,
-                    upper = 3.003281,
-                    c = 1.0,
-                    "Psi_Opt(lower)" = -0.0005459033,
-                    "rho(Inf)" = 3.331370)
+    , 'opt' = c(a = 0.01317965, 
+                lower = 0.0330545361, 
+                upper = 3.0032809058, 
+                c = 1.0, 
+                "Psi_Opt(lower)" = -0.0005459033, 
+                "rho(Inf)" = 3.3313697802, 
+                p1 = -0.0104368977, 
+                p2 = 0.3157778511, 
+                p3 = -0.0274957016, 
+                p4 = 0.0078039757, 
+                p5 = -0.0009528411, 
+                lop = 0.0330545361, 
+                upp = 3.0032809058, 
+                c2 = 1.0,
+                u1 = -0.0001724852, 
+                u2 = 0.9996474329 )
     , 'hampel' = c(1.5, 3.5, 8) * 0.9016085 ## a, b, r
     , 'mopt' = c(a = 0.01316352,
-                             normConst = 1.05753107,
-                             upper = 3.00373940,
-                             c = 1.0,
-                             "Psi_Opt(1)" = 0.46057111,
-                             "rho(Inf)" = 3.53690811)
+                  normConst = 1.05753107,
+                  upper = 3.00373940,
+                  c = 1.0,
+                  "Psi_Opt(1)" = 0.46057111,
+                  "rho(Inf)" = 3.53690811)
+    , 'optv0' = c(a = 0.01317965,
+                  lower = 0.03305454,
+                  upper = 3.003281,
+                  c = 1.0,
+                  "Psi_Opt(lower)" = -0.0005459033,
+                  "rho(Inf)" = 3.331370), 
+    'moptv0' = c(a = 0.01316352,
+                 normConst = 1.05753107,
+                 upper = 3.00373940,
+                 c = 0.38124404,
+                 "Psi_Opt(1)" = 0.46057111,
+                 "rho(Inf)" = 3.53690811)
     )
 
 .Mpsi.tuning.default <- function(psi) {
@@ -54,20 +76,43 @@
     , 'welsh' = 0.5773502
     , 'ggw' = c(-0.5, 1.5, NA, .50) ## (min{slope}, b ,  eff, bp)
     , 'lqq' = c(-0.5, 1.5, NA, .50) ## (min{slope}, b/c, eff, bp)
-    , 'opt' = c(a = 0.01317965,
+    , 'optv0' = c(a = 0.01317965,
                     lower = 0.03305454,
                     upper = 3.003281,
                     c = 0.2618571,
                     "Psi_Opt(lower)" = -0.0005459033,
                     "rho(Inf)" = 3.331370)
     , 'hampel' = c(1.5, 3.5, 8) * 0.2119163 ## a, b, r
-    , 'mopt' = c(a = 0.01316352,
+    , 'moptv0' = c(a = 0.01316352,
                              normConst = 1.05753107,
                              upper = 3.00373940,
                              c = 0.38124404,
                              "Psi_Opt(1)" = 0.46057111,
                              "rho(Inf)" = 3.53690811)
+    , 'opt' = c(a = 0.01317965, 
+                lower = 0.0330545361, 
+                upper = 3.0032809058, 
+                c = 0.3824666599, 
+                "Psi_Opt(lower)" = -0.0005459033, 
+                "rho(Inf)" = 3.3313697802, 
+                p1 = -0.0104368977, 
+                p2 = 0.3157778511, 
+                p3 = -0.0274957016, 
+                p4 = 0.0078039757, 
+                p5 = -0.0009528411, 
+                lop = 0.0330545361, 
+                upp = 3.0032809058, 
+                c2 = 0.3836642866,
+                u1 = -0.0001724852, 
+                u2 = 0.9996474329 )
+    , 'mopt' = c(a = 0.01316352,
+                   normConst = 1.05753107,
+                   upper = 3.00373940,
+                   c = 0.38124404,
+                   "Psi_Opt(1)" = 0.46057111,
+                   "rho(Inf)" = 3.53690811)
     )
+
 .Mchi.tuning.default <- function(psi) {
     if(is.null(p <- .Mchi.tuning.defaults[[psi]]))
 	stop(gettextf("invalid 'psi'=%s; possibly use .regularize.Mpsi(%s)",
@@ -551,7 +596,7 @@ lmrob..M..fit <- function (x = obj$x, y = obj$y, beta.initial = obj$coef,
         y <- model.response(obj$model, "numeric")
     # Only optimal and modified.optimal have more than 4 tuning constants
     stopifnot(length(y) == n,
-              length(c.psi) > 0, c.psi[-5] >= 0,
+              length(c.psi) > 0, # c.psi[-5] >= 0, (polynomial approx has neg coeffients)
               scale >= 0, length(beta.initial) == p)
 
     ret <- .C(R_lmrob_MM,
@@ -952,8 +997,8 @@ hatvalues.lmrob <- function(model, ...)
     i <- match(psi, c(
 	'huber', 'bisquare', 'welsh', 'opt',
 	## 0	    1	        2	 3
-	'hampel', 'ggw', 'lqq', 'mopt'
-	## 4	    5	   6      7
+	'hampel', 'ggw', 'lqq', 'mopt', 'optv0', 'moptv0'
+	## 4	    5	   6      7       8          9
 	))
     if(is.na(i)) stop("internal logic error in psi() function name: ", psi,
 		      "  Please report!")
@@ -962,63 +1007,73 @@ hatvalues.lmrob <- function(model, ...)
 
 .psi.conv.cc <- function(psi, cc)
 {
-    if (!is.character(psi) || length(psi) != 1)
-        stop("argument 'psi' must be a string (denoting a psi function)")
-    if(!is.numeric(cc))
-        stop("tuning constant 'cc' is not numeric")
-
-    ## "FIXME": For (ggw, lqq) this is much related to  .psi.const() below
-    switch(tolower(psi),
-           'ggw' = {
-               ## Input: 4 parameters, (minimal slope, b, efficiency, breakdown point) _or_ c(0, a,b,c, m.rho)
-               ## Output 'k': either k in {1:6} or  k = c(0, k[2:5])
-
-               ## prespecified 6 cases all treated in C ( ../src/lmrob.c ) :
-               if (     isTRUE(all.equal(cc, c(-.5, 1  , 0.95, NA)))) return(1)
-               else if (isTRUE(all.equal(cc, c(-.5, 1  , 0.85, NA)))) return(2)
-               else if (isTRUE(all.equal(cc, c(-.5, 1. , NA, 0.5)))) return(3)
-               else if (isTRUE(all.equal(cc, c(-.5, 1.5, 0.95, NA)))) return(4)
-               else if (isTRUE(all.equal(cc, c(-.5, 1.5, 0.85, NA)))) return(5)
-               else if (isTRUE(all.equal(cc, c(-.5, 1.5, NA, 0.5)))) return(6)
-               else if (length(cc) == 5 && cc[1] == 0 ||
-                        (length(cc <- attr(cc, 'constants')) == 5 && cc[1] == 0))
-                   return(cc)
-               else stop('Coefficients for ',psi,' function incorrectly specified.\n',
-			 'Use c(minimal slope, b, efficiency, breakdown point) or c(0, a,b,c, max_rho).')
-           },
-           'lqq' = {
-               ## Input: 4 parameters, (minimal slope, b/c, efficiency, breakdown point) _or_ (b, c, s) [length 3]
-               ## Output: k[1:3] = (b, c, s)
-               if (isTRUE(all.equal(cc, c(-.5, 1.5, 0.95, NA))))
-                   return(c(1.4734061, 0.9822707, 1.5))
-               else if (isTRUE(all.equal(cc, c(-.5, 1.5, NA, 0.5))))
-                   return(c(0.4015457, 0.2676971, 1.5))
-               else if (length(cc) == 3 || length(cc <- attr(cc, 'constants')) == 3)
-                   return(cc)
-               else stop('Coefficients for ',psi,' function incorrectly specified.\n',
-                         'Use c(minimal slope, b, efficiency, breakdown point) [2 cases only] or  c(b, c, s)')
-           },
-           'hampel' = {
-               ## just check length of coefficients
-               if (length(cc) != 3)
-                   stop('Coef. for Hampel psi function not of length 3')
-           },
-           'opt' = {
-               ## just check length of coefficients
-               if (length(cc) != 6)
-                   stop('Coef. for Optimal psi function not of length 6')
-           },
-           'mopt' = {
-               ## just check length of coefficients
-               if (length(cc) != 6)
-                   stop('Coef. for Modified Optimal psi function not of length 6')
-           }, {
-               ## otherwise: should have length 1
-               if (length(cc) != 1)
-                   stop('Coef. for psi function ', psi,' not of length 1')
-           })
-
-    return(cc)
+  if (!is.character(psi) || length(psi) != 1)
+    stop("argument 'psi' must be a string (denoting a psi function)")
+  if(!is.numeric(cc))
+    stop("tuning constant 'cc' is not numeric")
+  
+  ## "FIXME": For (ggw, lqq) this is much related to  .psi.const() below
+  switch(tolower(psi),
+         'ggw' = {
+           ## Input: 4 parameters, (minimal slope, b, efficiency, breakdown point) _or_ c(0, a,b,c, m.rho)
+           ## Output 'k': either k in {1:6} or  k = c(0, k[2:5])
+           
+           ## prespecified 6 cases all treated in C ( ../src/lmrob.c ) :
+           if (     isTRUE(all.equal(cc, c(-.5, 1  , 0.95, NA)))) return(1)
+           else if (isTRUE(all.equal(cc, c(-.5, 1  , 0.85, NA)))) return(2)
+           else if (isTRUE(all.equal(cc, c(-.5, 1. , NA, 0.5)))) return(3)
+           else if (isTRUE(all.equal(cc, c(-.5, 1.5, 0.95, NA)))) return(4)
+           else if (isTRUE(all.equal(cc, c(-.5, 1.5, 0.85, NA)))) return(5)
+           else if (isTRUE(all.equal(cc, c(-.5, 1.5, NA, 0.5)))) return(6)
+           else if (length(cc) == 5 && cc[1] == 0 ||
+                    (length(cc <- attr(cc, 'constants')) == 5 && cc[1] == 0))
+             return(cc)
+           else stop('Coefficients for ',psi,' function incorrectly specified.\n',
+                     'Use c(minimal slope, b, efficiency, breakdown point) or c(0, a,b,c, max_rho).')
+         },
+         'lqq' = {
+           ## Input: 4 parameters, (minimal slope, b/c, efficiency, breakdown point) _or_ (b, c, s) [length 3]
+           ## Output: k[1:3] = (b, c, s)
+           if (isTRUE(all.equal(cc, c(-.5, 1.5, 0.95, NA))))
+             return(c(1.4734061, 0.9822707, 1.5))
+           else if (isTRUE(all.equal(cc, c(-.5, 1.5, NA, 0.5))))
+             return(c(0.4015457, 0.2676971, 1.5))
+           else if (length(cc) == 3 || length(cc <- attr(cc, 'constants')) == 3)
+             return(cc)
+           else stop('Coefficients for ',psi,' function incorrectly specified.\n',
+                     'Use c(minimal slope, b, efficiency, breakdown point) [2 cases only] or  c(b, c, s)')
+         },
+         'hampel' = {
+           ## just check length of coefficients
+           if (length(cc) != 3)
+             stop('Coef. for Hampel psi function not of length 3')
+         },
+         'opt' = {
+           ## just check length of coefficients
+           if (length(cc) != 16)
+             stop('Coef. for Optimal psi function not of length 16')
+         },
+         'mopt' = {
+           ## just check length of coefficients
+           if (length(cc) != 16)
+             stop('Coef. for Modified Optimal psi function not of length 6')
+         }, 
+         'optv0' = {
+           ## just check length of coefficients
+           if (length(cc) != 6)
+             stop('Coef. for Optimalv0 psi function not of length 6')
+         },
+         'moptv0' = {
+           ## just check length of coefficients
+           if (length(cc) != 6)
+             stop('Coef. for Modified Optimalv0 psi function not of length 6')
+         }, {
+           ## otherwise: should have length 1
+           if (length(cc) != 1)
+             stop('Coef. for psi function ', psi,' not of length 1')
+         })
+  
+  return(cc)
 }
 
 .psi.ggw.mxs <- function(a, b, c, tol = .Machine$double.eps^0.25) {
