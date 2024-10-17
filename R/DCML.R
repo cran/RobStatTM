@@ -5,34 +5,34 @@
 #' M-estimators of scale are a robust alternative to
 #' the sample standard deviation. Given a vector of
 #' residuals \code{r}, the M-scale estimator \code{s}
-#' solves the non-linear equation \code{mean(rho(r/s, cc))=b},
-#' where \code{b} and \code{cc} are user-chosen tuning constants.
-#' In this package the function \code{rho} is one of
-#' Tukey's bisquare family.
-#' The breakdown point of the estimator is \code{min(b, 1-b)},
-#' so the optimal choice for \code{b} is 0.5. To obtain a
+#' solves the non-linear equation \code{mean(rho(r/s, cc))=delta},
+#' where \code{delta} determines the breakdown point of the 
+#' estimator, and \code{cc} is a tuning parameter 
+#' calculated to obtain consistency under a Gaussian model. 
+#' The breakdown point of the estimator is \code{min(delta, 1-delta)},
+#' so the optimal choice for \code{delta} is 0.5. To obtain a
 #' consistent estimator the constant
-#' \code{cc} should be chosen such that E(rho(Z, cc)) = b, where
+#' \code{cc} is chosen such that E(rho(Z, cc)) = delta, where
 #' Z is a standard normal random variable.
 #'
 #' The iterative algorithm starts from the scaled median of
 #' the absolute values of the input vector, and then
-#' cycles through the equation s^2 = s^2 * mean(rho(r/s, cc)) / b.
+#' cycles through the equation \code{s^2 = s^2 * mean(rho(r/s, cc)) / delta}.
 #'
-#' @export mscale scaleM
-#' @aliases mscale scaleM
-#' @rdname mscale
+#' @export  scaleM
 #'
 #' @param u vector of residuals
 #' @param delta the right hand side of the M-scale equation
 #' @param family string specifying the name of the family of loss function to be used (current valid
 #' options are "bisquare", "opt" and "mopt").
-#' @param tuning.chi the tuning object for the rho function as returned
-#' by \code{\link{lmrobdet.control}}, \link{bisquare}, \link{mopt} or \link{opt}.
-#' It should correspond to the family of rho functions specified in the argument \code{family}.
 #' @param tol relative tolerance for convergence
 #' @param max.it maximum number of iterations allowed
 #' @param tolerancezero smallest (in absolute value) non-zero value accepted as a scale. Defaults to \code{.Machine$double.eps}
+#' @param tuning.chi the tuning object as returned
+#' by \code{\link{lmrobdet.control}}, \code{\link{bisquare}}, \code{\link{mopt}},
+#' or \code{\link{opt}}. It defaults to the value that results
+#' in a consistent scale estimator for the specified \code{family} 
+#' of loss functions and breakdown point as set by \code{delta}. 
 #'
 #' @return The scale estimate value at the last iteration or at convergence.
 #'
@@ -41,20 +41,17 @@
 #' @examples
 #' set.seed(123)
 #' r <- rnorm(150, sd=1.5)
-#' mscale(r)
+#' scaleM(r)
 #' sd(r)
 #' # 10% of outliers, sd of good points is 1.5
 #' set.seed(123)
 #' r2 <- c(rnorm(135, sd=1.5), rnorm(15, mean=-5, sd=.5))
-#' mscale(r2)
+#' scaleM(r2, family='opt')
 #' sd(r2)
 #'
-scaleM <- mscale <- function(u, delta=0.5, tuning.chi=1.547645, family ="bisquare",
-                             max.it=100, tol=1e-6, tolerancezero=.Machine$double.eps) {
-  # M-scale of a sample u
-  # tol: accuracy
-  # delta: breakdown point (right side)
-  # Initial
+scaleM <- function(u, delta=0.5, family ="bisquare", 
+                   max.it=100, tol=1e-6, tolerancezero=.Machine$double.eps,
+                   tuning.chi=lmrobdet.control(family=family, bb=delta)$tuning.chi) {
   s0 <- median(abs(u))/.6745
   if(s0 < tolerancezero) return(0)
   err <- tol + 1
@@ -67,6 +64,28 @@ scaleM <- mscale <- function(u, delta=0.5, tuning.chi=1.547645, family ="bisquar
   }
   return(s0)
 }
+
+mscale <- function(u, delta=0.5, tuning.chi=1.547645, family ="bisquare",
+                             max.it=100, tol=1e-6, tolerancezero=.Machine$double.eps) {
+  # M-scale of a sample u
+  # tol: accuracy
+  # delta: breakdown point (right side)
+  # Initial scale:
+  s0 <- median(abs(u))/.6745
+  if(s0 < tolerancezero) return(0)
+  err <- tol + 1
+  it <- 0
+  while( (err > tol) && ( it < max.it) ) {
+    it <- it+1
+    s1 <- sqrt( s0^2 * mean(rho(u/s0, family = family, cc = tuning.chi)) / delta )
+    err <- abs(s1-s0)/s0
+    s0 <- s1
+  }
+  return(s0)
+}
+
+
+
 
 
 #' Approximate covariance matrix of the DCML regression estimator.
@@ -120,7 +139,7 @@ cov.dcml <- function(res.LS, res.R, CC, sig.R, t0, p, n, control) {
 #' @param control a list of control parameters as returned by \code{\link{lmrobdet.control}}
 #' @param mf model frame
 #'
-#' @return an \code{\link{lmrob}} object witht the M-estimator
+#' @return an \code{lmrob} object witht the M-estimator
 #' obtained starting from the S-estimator computed with the
 #' Pen~a-Yohai initial candidates. The properties of the final
 #' estimator (efficiency, etc.) are determined by the tuning constants in
@@ -270,10 +289,10 @@ DCML <- function(x, y, z, z0, control) {
 #' @param mf model frame
 #' @param y response vector
 #' @param control a list of control parameters as returned by \code{\link{lmrobdet.control}}
-#' @param split a list as returned by \code{\link{splitFrame}} containing the continuous and
+#' @param split a list as returned by \code{splitFrame} containing the continuous and
 #' dummy components of the design matrix
 #'
-#' @return an \code{\link{lmrob}} object witht the M-estimator
+#' @return an \code{lmrob} object witht the M-estimator
 #' obtained starting from the MS-estimator computed with the
 #' Pen~a-Yohai initial candidates. The properties of the final
 #' estimator (efficiency, etc.) are determined by the tuning constants in

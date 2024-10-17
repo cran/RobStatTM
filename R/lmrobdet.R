@@ -401,18 +401,18 @@ lmrobdetMM <- function(formula, data, subset, weights, na.action,
 #' options are \code{'S'}, for an S-estimator and \code{'MS'} for an M-S estimator which is
 #' appropriate when there are categorical explanatory variables in the model.
 #' @param psc_keep For \code{pyinit}, proportion of observations to remove based on PSCs. The effective proportion of removed
-#' observations is adjusted according to the sample size to be \code{prosac*(1-p/n)}. See \code{\link{pyinit}}.
+#' observations is adjusted according to the sample size to be \code{prosac*(1-p/n)}. See \code{pyinit}.
 #' @param resid_keep_method For \code{pyinit}, how to clean the data based on large residuals. If
 #' \code{"threshold"}, all observations with scaled residuals larger than \code{C.res} will
 #' be removed, if \code{"proportion"}, observations with the largest \code{prop} residuals will
-#' be removed. See \code{\link{pyinit}}.
-#' @param resid_keep_thresh See parameter \code{resid_keep_method} above. See \code{\link{pyinit}}.
-#' @param resid_keep_prop See parameter \code{resid_keep_method} above. See \code{\link{pyinit}}.
-#' @param py_maxit Maximum number of iterations. See \code{\link{pyinit}}.
-#' @param py_eps Relative tolerance for convergence.  See \code{\link{pyinit}}.
-#' @param mscale_maxit Maximum number of iterations for the M-scale algorithm. See \code{\link{pyinit}} and \code{\link{mscale}}.
-#' @param mscale_tol Convergence tolerance for the M-scale algorithm. See \code{\link{mscale}} and \code{\link{mscale}}.
-#' @param mscale_rho_fun String indicating the loss function used for the M-scale. See \code{\link{pyinit}}.
+#' be removed. See \code{pyinit}.
+#' @param resid_keep_thresh See parameter \code{resid_keep_method} above. See \code{pyinit}.
+#' @param resid_keep_prop See parameter \code{resid_keep_method} above. See \code{pyinit}.
+#' @param py_maxit Maximum number of iterations. See \code{pyinit}.
+#' @param py_eps Relative tolerance for convergence.  See \code{pyinit}.
+#' @param mscale_maxit Maximum number of iterations for the M-scale algorithm. See \code{pyinit} and \code{\link{scaleM}}.
+#' @param mscale_tol Convergence tolerance for the M-scale algorithm. See \code{\link{scaleM}}.
+#' @param mscale_rho_fun String indicating the loss function used for the M-scale. See \code{pyinit}.
 #'
 #' @return A list with the necessary tuning parameters.
 #'
@@ -442,7 +442,7 @@ lmrobdetMM <- function(formula, data, subset, weights, na.action,
 #'
 #' @author Matias Salibian-Barrera, \email{matias@stat.ubc.ca}
 #'
-#' @seealso \code{\link{pyinit}}, \code{\link{mscale}}.
+#' @seealso \code{\link{scaleM}}.
 #'
 #' @examples
 #' data(coleman, package='robustbase')
@@ -1446,8 +1446,8 @@ lmrobdetLinTest <- rob.linear.test <- function(object1, object2)
 #' can be constructed using the functions \link{bisquare}, \link{mopt} and \link{opt}.
 #' @param efficiency desired asymptotic efficiency of the final regression M-estimator. Defaults to 0.85.
 #' @param max.it maximum number of IRWLS iterations for the M-estimator
-#' @param mscale_tol Convergence tolerance for the M-scale algorithm. See \code{\link{mscale}}.
-#' @param mscale_maxit Maximum number of iterations for the M-scale algorithm. See \code{\link{mscale}}.
+#' @param mscale_tol Convergence tolerance for the M-scale algorithm. See \code{\link{scaleM}}.
+#' @param mscale_maxit Maximum number of iterations for the M-scale algorithm. See \code{\link{scaleM}}.
 #' @param rel.tol relative covergence tolerance for the IRWLS iterations for the M-estimator
 #' @param trace.lev positive values (increasingly) provide details on the progress of the M-algorithm
 #' @param family string specifying the name of the family of loss function to be used (current valid
